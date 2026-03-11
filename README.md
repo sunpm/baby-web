@@ -8,6 +8,12 @@
 
 目标是单手快速记录、离线可用、家人跨设备同步。
 
+## 设计哲学 (UI/UX)
+应用采用了基于 **Liquid Glass（流动玻璃质感）** 的现代高品质界面设计：
+- **大量留白 (Airy Aesthetics)**：摒弃了传统的粗硬框线，使用弥散阴影和微弱背景差分割区域，减轻视觉疲劳。
+- **物理隐喻 (Absolute Symmetry)**：通过重构底部的 QuickActionBar，实现了主要 CTA 按钮的完美居中与数字右侧解耦悬浮，带来精确物理拟真质感。
+- **极致圆润**：全局使用 `rounded-2xl` 到 `rounded-3xl` 以及高级渐变层，匹配 iOS 与现代 Android 的无界屏幕理念。
+
 ## 技术栈
 
 - `React 19 + TypeScript + Vite`
