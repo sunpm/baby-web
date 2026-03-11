@@ -52,6 +52,20 @@ pnpm dev
 3. 把 `.env` 或 `Netlify` 环境变量中的 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 填好。
 4. 打开网页后，在页面里的“家庭共享”面板创建家庭或输入邀请码加入家庭。
 
+## 清理旧字段
+
+如果你的库是从旧版 `family_code` 方案升级上来的，并且已经确认所有数据都带有 `household_id`，可以额外执行：
+
+- `supabase/cleanup_legacy_family_code.sql`
+
+这个脚本会删除下面几个历史兼容字段：
+
+- `public.baby_profiles.family_code`
+- `public.baby_events.family_code`
+- `public.baby_households.legacy_family_code`
+
+它不会删除时间字段，`created_at` / `updated_at` 会保留。
+
 ## Netlify 部署
 
 仓库里已经包含 `netlify.toml`，默认配置如下：

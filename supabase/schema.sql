@@ -4,7 +4,6 @@ create table if not exists public.baby_households (
   id uuid primary key default gen_random_uuid(),
   display_name text not null check (length(btrim(display_name)) between 1 and 48),
   invite_code text not null unique default lower(encode(gen_random_bytes(6), 'hex')) check (invite_code ~ '^[a-f0-9]{12}$'),
-  legacy_family_code text unique,
   created_by_user_id uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -12,14 +11,14 @@ create table if not exists public.baby_households (
 
 create table if not exists public.baby_profiles (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  household_id uuid references public.baby_households (id) on delete cascade,
+  household_id uuid not null references public.baby_households (id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create table if not exists public.baby_events (
   id uuid primary key default gen_random_uuid(),
-  household_id uuid references public.baby_households (id) on delete cascade,
+  household_id uuid not null references public.baby_households (id) on delete cascade,
   kind text not null check (kind in ('feeding', 'poop', 'probiotic')),
   event_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
@@ -29,47 +28,16 @@ create table if not exists public.baby_events (
   created_by_device_id text not null
 );
 
-alter table public.baby_profiles add column if not exists family_code text;
-alter table public.baby_events add column if not exists family_code text;
 alter table public.baby_profiles add column if not exists household_id uuid references public.baby_households (id) on delete cascade;
 alter table public.baby_events add column if not exists household_id uuid references public.baby_households (id) on delete cascade;
-alter table public.baby_households add column if not exists legacy_family_code text;
 alter table public.baby_households add column if not exists created_by_user_id uuid references auth.users (id) on delete set null;
 alter table public.baby_households add column if not exists created_at timestamptz not null default now();
 alter table public.baby_households add column if not exists updated_at timestamptz not null default now();
-alter table public.baby_profiles alter column family_code drop not null;
-alter table public.baby_events alter column family_code drop not null;
+alter table public.baby_profiles add column if not exists created_at timestamptz not null default now();
+alter table public.baby_profiles add column if not exists updated_at timestamptz not null default now();
 
 create index if not exists baby_events_household_event_at_idx
   on public.baby_events (household_id, event_at desc);
-
-insert into public.baby_households (display_name, legacy_family_code)
-select legacy.family_code, legacy.family_code
-from (
-  select family_code
-  from public.baby_profiles
-  where family_code is not null and length(btrim(family_code)) > 0
-  union
-  select family_code
-  from public.baby_events
-  where family_code is not null and length(btrim(family_code)) > 0
-) as legacy
-on conflict (legacy_family_code) do nothing;
-
-update public.baby_profiles as profile
-set household_id = household.id,
-    updated_at = now()
-from public.baby_households as household
-where profile.household_id is null
-  and profile.family_code is not null
-  and profile.family_code = household.legacy_family_code;
-
-update public.baby_events as event
-set household_id = household.id
-from public.baby_households as household
-where event.household_id is null
-  and event.family_code is not null
-  and event.family_code = household.legacy_family_code;
 
 do $$
 begin
