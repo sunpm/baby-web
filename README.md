@@ -43,11 +43,15 @@ npm run dev
 
 ## Supabase 配置
 
-`Web/PWA` 前端不应使用数据库密码。请使用下面三个变量:
+`Web/PWA` 前端不应使用数据库密码。请使用下面三个变量供前端使用:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `VITE_BABY_FAMILY_CODE`
+- `VITE_BABY_HOUSEHOLD_NAME`
+
+如果你需要在服务端或自动化脚本中直连数据库，请使用:
+
+- `SUPABASE_DB_URL` (请绝对不要在前端代码中暴露此变量)
 
 数据库表与 RLS 策略在 [`supabase/schema.sql`](/Users/sunpm/i/baby-web/supabase/schema.sql)。
 
