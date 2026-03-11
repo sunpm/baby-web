@@ -15,13 +15,14 @@
 - `vite-plugin-pwa`
 - `Supabase (Anonymous Auth + Postgres + Realtime)`
 - `Netlify` 静态部署
+- `pnpm` 作为包管理器
 
 ## 本地开发
 
 1. 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 2. 拷贝环境变量
@@ -33,7 +34,7 @@ cp .env.example .env
 3. 启动开发
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## 环境变量
@@ -55,9 +56,10 @@ npm run dev
 
 仓库里已经包含 `netlify.toml`，默认配置如下：
 
-- 构建命令：`npm run build`
+- 构建命令：`pnpm build`
 - 发布目录：`dist`
 - Node 版本：`20.19.0`
+- pnpm 版本：`10.9.0`
 - SPA 回退：所有路由回退到 `index.html`
 - PWA 关键文件：`sw.js`、`manifest.webmanifest` 使用 `must-revalidate`
 
@@ -76,10 +78,10 @@ npm run dev
 
 ## 可用脚本
 
-- `npm run dev` 开发模式
-- `npm run build` 构建生产包
-- `npm run preview` 预览生产包
-- `npm run lint` ESLint 检查
+- `pnpm dev` 开发模式
+- `pnpm build` 构建生产包
+- `pnpm preview` 预览生产包
+- `pnpm lint` ESLint 检查
 
 ## PWA 特性
 
