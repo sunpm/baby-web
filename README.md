@@ -1,6 +1,6 @@
 # Baby Log PWA
 
-宝宝记录网页端，聚焦三个动作:
+宝宝记录网页端，聚焦三个动作：
 
 - 喂奶
 - 拉粑粑
@@ -8,18 +8,13 @@
 
 目标是单手快速记录、离线可用、家人跨设备同步。
 
-## 设计哲学 (UI/UX)
-应用采用了基于 **Liquid Glass（流动玻璃质感）** 的现代高品质界面设计：
-- **大量留白 (Airy Aesthetics)**：摒弃了传统的粗硬框线，使用弥散阴影和微弱背景差分割区域，减轻视觉疲劳。
-- **物理隐喻 (Absolute Symmetry)**：通过重构底部的 QuickActionBar，实现了主要 CTA 按钮的完美居中与数字右侧解耦悬浮，带来精确物理拟真质感。
-- **极致圆润**：全局使用 `rounded-2xl` 到 `rounded-3xl` 以及高级渐变层，匹配 iOS 与现代 Android 的无界屏幕理念。
-
 ## 技术栈
 
 - `React 19 + TypeScript + Vite`
 - `Tailwind CSS v4`
 - `vite-plugin-pwa`
-- `Supabase (Auth + Postgres + Realtime)`
+- `Supabase (Anonymous Auth + Postgres + Realtime)`
+- `Netlify` 静态部署
 
 ## 本地开发
 
@@ -41,27 +36,43 @@ cp .env.example .env
 npm run dev
 ```
 
-## Supabase 配置
+## 环境变量
 
-`Web/PWA` 前端不应使用数据库密码。请使用下面三个变量供前端使用:
+前端和 `Netlify` 构建只需要下面三个变量：
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_BABY_HOUSEHOLD_NAME`
 
-如果你需要在服务端或自动化脚本中直连数据库，请使用:
+## Supabase 初始化
 
-- `SUPABASE_DB_URL` (请绝对不要在前端代码中暴露此变量)
+1. 在 `Authentication -> Providers -> Anonymous` 打开匿名登录。
+2. 在 SQL Editor 执行 `supabase/schema.sql`。
+3. 把 `.env` 或 `Netlify` 环境变量中的 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY` 填好。
+4. 打开网页后，在页面里的“家庭共享”面板创建家庭或输入邀请码加入家庭。
 
-数据库表与 RLS 策略在 [`supabase/schema.sql`](/Users/sunpm/i/baby-web/supabase/schema.sql)。
+## Netlify 部署
 
-### 初始化步骤
+仓库里已经包含 `netlify.toml`，默认配置如下：
 
-1. 在 Supabase Dashboard 打开 `Authentication -> Providers -> Anonymous`。
-2. 在 SQL Editor 执行 [`supabase/schema.sql`](/Users/sunpm/i/baby-web/supabase/schema.sql)。
-3. 把 `.env` 中的 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY` 填好。
-4. 家人使用同一个 `VITE_BABY_FAMILY_CODE` 或在页面设置里填相同代号。
-5. 如果你之前执行过旧版 SQL，再执行一遍以补上删除策略。
+- 构建命令：`npm run build`
+- 发布目录：`dist`
+- Node 版本：`20.19.0`
+- SPA 回退：所有路由回退到 `index.html`
+- PWA 关键文件：`sw.js`、`manifest.webmanifest` 使用 `must-revalidate`
+
+### 部署步骤
+
+1. 把仓库导入到 `Netlify`。
+2. 在 `Site configuration -> Environment variables` 中配置：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_BABY_HOUSEHOLD_NAME`（可选，但建议配置）
+3. 触发一次部署。
+4. 部署完成后，用两个设备测试：
+   - 设备 A 创建家庭并生成邀请链接
+   - 设备 B 打开邀请链接并加入同一家庭
+   - 互相新增一条记录，确认同步正常
 
 ## 可用脚本
 
