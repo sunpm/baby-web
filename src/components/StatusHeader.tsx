@@ -6,7 +6,6 @@ import {
   CloudSlash,
   DownloadSimple,
   LinkSimple,
-  MoonStars,
   UsersThree,
   WarningCircle,
 } from '@phosphor-icons/react'
@@ -84,10 +83,6 @@ export function StatusHeader({
   return (
     <header className="surface overflow-hidden px-4 py-3.5 sm:px-5 sm:py-4">
       <div className="min-w-0">
-        <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-muted">
-          <MoonStars size={12} weight="fill" />
-          跟随系统
-        </p>
         <h1 className="mt-1 text-[clamp(1.25rem,5vw,1.75rem)] font-bold tracking-tight text-primary">
           宝宝日常记录
         </h1>
@@ -99,7 +94,7 @@ export function StatusHeader({
       <div className="mt-3 flex items-center gap-2 rounded-2xl bg-black/[0.02] p-1.5 ring-1 ring-[var(--surface-border)] dark:bg-white/[0.02]">
         <div className="min-w-0 flex flex-1 items-center gap-[0.3125rem] overflow-hidden">
           <span
-            className={`inline-flex h-[2rem] shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-[0.75rem] font-medium ring-1 ${getSyncBadgeClass(syncPhase)}`}
+            className={`inline-flex h-[2rem] shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[0.75rem] font-medium ${getSyncBadgeClass(syncPhase)}`}
           >
             {syncPhase === 'ready' && <CloudCheck size={13} weight="fill" />}
             {syncPhase === 'syncing' && <ArrowClockwise size={13} className="animate-spin" />}
@@ -120,7 +115,7 @@ export function StatusHeader({
               onClick={onInstallClick}
               className={`action-tap inline-flex h-[2rem] shrink-0 items-center gap-[0.3125rem] rounded-xl border px-[0.6rem] text-[0.75rem] font-medium ${installButtonClass}`}
             >
-              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/4 dark:bg-white/8">
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/4 dark:bg-white/10">
                 <DownloadSimple size={10} />
               </span>
               安装

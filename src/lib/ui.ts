@@ -173,18 +173,18 @@ export function buildSyncLabel(phase: SyncPhase) {
 
 export function getSyncBadgeClass(phase: SyncPhase) {
   if (phase === 'ready') {
-    return 'bg-emerald-500/12 text-emerald-700 ring-emerald-400/35 dark:bg-emerald-500/20 dark:text-emerald-100 dark:ring-emerald-400/40'
+    return 'border-emerald-400/35 bg-emerald-500/12 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-100'
   }
   if (phase === 'syncing') {
-    return 'bg-cyan-500/12 text-cyan-700 ring-cyan-400/35 dark:bg-cyan-500/20 dark:text-cyan-100 dark:ring-cyan-400/40'
+    return 'border-cyan-400/35 bg-cyan-500/12 text-cyan-700 dark:border-cyan-400/40 dark:bg-cyan-500/20 dark:text-cyan-100'
   }
   if (phase === 'setup') {
-    return 'bg-amber-500/12 text-amber-700 ring-amber-400/35 dark:bg-amber-500/20 dark:text-amber-100 dark:ring-amber-400/40'
+    return 'border-amber-400/35 bg-amber-500/12 text-amber-700 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-100'
   }
   if (phase === 'error') {
-    return 'bg-red-500/12 text-red-700 ring-red-400/35 dark:bg-red-500/20 dark:text-red-100 dark:ring-red-400/40'
+    return 'border-red-400/35 bg-red-500/12 text-red-700 dark:border-red-400/40 dark:bg-red-500/20 dark:text-red-100'
   }
-  return 'bg-slate-500/10 text-slate-700 ring-slate-400/30 dark:bg-zinc-500/20 dark:text-zinc-200 dark:ring-zinc-400/40'
+  return 'border-slate-300/55 bg-slate-500/10 text-slate-700 dark:border-zinc-400/35 dark:bg-zinc-500/20 dark:text-zinc-200'
 }
 
 export function parsePositiveInt(value: string, fallback: number) {

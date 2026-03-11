@@ -7,6 +7,8 @@ import {
   X,
 } from '@phosphor-icons/react'
 
+export type FamilyPanelMode = 'create' | 'join'
+
 interface FamilyPanelSheetProps {
   currentHouseholdInviteCode?: string
   currentHouseholdName: string
@@ -15,12 +17,14 @@ interface FamilyPanelSheetProps {
   hasJoinedHousehold: boolean
   householdNameDraft: string
   inviteCodeDraft: string
+  mode: FamilyPanelMode
   onClose: () => void
   onCopyInviteCode: () => void
   onCreateHousehold: () => void
   onHouseholdNameDraftChange: (value: string) => void
   onInviteCodeDraftChange: (value: string) => void
   onJoinHousehold: () => void
+  onModeChange: (mode: FamilyPanelMode) => void
   onShareInviteLink: () => void
   show: boolean
   syncEnabled: boolean
@@ -34,12 +38,14 @@ export function FamilyPanelSheet({
   hasJoinedHousehold,
   householdNameDraft,
   inviteCodeDraft,
+  mode,
   onClose,
   onCopyInviteCode,
   onCreateHousehold,
   onHouseholdNameDraftChange,
   onInviteCodeDraftChange,
   onJoinHousehold,
+  onModeChange,
   onShareInviteLink,
   show,
   syncEnabled,
@@ -62,9 +68,23 @@ export function FamilyPanelSheet({
         ? CheckCircle
         : UsersThree
 
+  const canCreateHousehold = householdNameDraft.trim().length > 0
+  const canJoinHousehold = inviteCodeDraft.trim().length === 12
+  const createButtonClass = canCreateHousehold
+    ? 'bg-emerald-400 text-slate-950 shadow-[0_8px_18px_rgba(16,185,129,0.18)]'
+    : 'bg-slate-200/90 text-slate-500 shadow-none dark:bg-zinc-800 dark:text-zinc-500'
+  const joinButtonClass = canJoinHousehold
+    ? 'border-emerald-400/35 bg-emerald-400/12 text-emerald-700 shadow-[0_8px_18px_rgba(16,185,129,0.12)] dark:text-emerald-200'
+    : 'border-[var(--surface-border-strong)] bg-[var(--control-bg)] text-secondary'
+
   return (
     <div className="fixed inset-0 z-40 bg-slate-950/36 backdrop-blur-sm dark:bg-slate-950/72">
-      <button type="button" aria-label="关闭家庭共享面板" onClick={onClose} className="absolute inset-0" />
+      <button
+        type="button"
+        aria-label="关闭家庭共享面板"
+        onClick={onClose}
+        className="absolute inset-0"
+      />
 
       <section
         role="dialog"
@@ -85,7 +105,7 @@ export function FamilyPanelSheet({
             </h2>
             <p className="mt-1 text-[0.8rem] text-muted">
               {syncEnabled
-                ? '创建一个家庭，或输入邀请码加入现有家庭。'
+                ? '选择创建新家庭，或用邀请码加入现有家庭。'
                 : '配置 Supabase 后，才可以跨设备同步和共享。'}
             </p>
           </div>
@@ -138,59 +158,76 @@ export function FamilyPanelSheet({
 
         {syncEnabled ? (
           <div className="mt-3 space-y-2.5">
-            <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-2.5">
-              <label
-                htmlFor="householdName"
-                className="block text-[0.66rem] uppercase tracking-[0.14em] text-muted"
-              >
-                创建新家庭
-              </label>
-              <input
-                id="householdName"
-                value={householdNameDraft}
-                onChange={(event) => onHouseholdNameDraftChange(event.target.value)}
-                className="control-surface mt-1.5 h-9 w-full rounded-lg px-2.5 text-[0.82rem] text-primary outline-none placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
-                placeholder={currentHouseholdName || '例如：我家宝宝'}
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
+            <div className="flex gap-1 rounded-xl border border-[var(--surface-border)] bg-black/[0.03] p-1 ring-1 ring-black/2 dark:bg-white/[0.03] dark:ring-white/3">
               <button
                 type="button"
-                onClick={onCreateHousehold}
-                className="action-tap mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg bg-emerald-400 px-3 text-[0.8rem] font-semibold text-slate-950 shadow-[0_8px_18px_rgba(16,185,129,0.18)]"
+                onClick={() => onModeChange('create')}
+                className={`action-tap inline-flex h-8 flex-1 items-center justify-center rounded-lg text-[0.79rem] font-medium ${mode === 'create' ? 'bg-[var(--surface-bg)] text-primary shadow-[0_4px_10px_rgba(15,23,42,0.08)] ring-1 ring-[var(--surface-border)]' : 'text-muted'}`}
               >
-                创建并开始共享
+                创建家庭
+              </button>
+              <button
+                type="button"
+                onClick={() => onModeChange('join')}
+                className={`action-tap inline-flex h-8 flex-1 items-center justify-center rounded-lg text-[0.79rem] font-medium ${mode === 'join' ? 'bg-[var(--surface-bg)] text-primary shadow-[0_4px_10px_rgba(15,23,42,0.08)] ring-1 ring-[var(--surface-border)]' : 'text-muted'}`}
+              >
+                加入家庭
               </button>
             </div>
 
-            <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-2.5">
-              <label
-                htmlFor="inviteCode"
-                className="block text-[0.66rem] uppercase tracking-[0.14em] text-muted"
-              >
-                输入邀请码加入
-              </label>
-              <input
-                id="inviteCode"
-                value={inviteCodeDraft}
-                onChange={(event) => onInviteCodeDraftChange(event.target.value)}
-                className="control-surface mt-1.5 h-9 w-full rounded-lg px-2.5 font-mono text-[0.82rem] tracking-[0.08em] text-primary outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
-                placeholder="例如：8fa0c1d2e3b4"
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
-              <button
-                type="button"
-                onClick={onJoinHousehold}
-                className="action-tap mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg border border-[var(--surface-border-strong)] bg-[var(--control-bg)] px-3 text-[0.8rem] font-semibold text-secondary"
-              >
-                加入当前家庭
-              </button>
-            </div>
-
-            <p className="text-[0.72rem] leading-[1.45] text-muted">
-              家庭名称只用于显示；真正共享依赖随机邀请码。创建或加入其他家庭时，会切换当前同步空间。
-            </p>
+            {mode === 'create' ? (
+              <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-2.5">
+                <label
+                  htmlFor="householdName"
+                  className="block text-[0.66rem] uppercase tracking-[0.14em] text-muted"
+                >
+                  家庭名称
+                </label>
+                <input
+                  id="householdName"
+                  value={householdNameDraft}
+                  onChange={(event) => onHouseholdNameDraftChange(event.target.value)}
+                  className="control-surface mt-1.5 h-9 w-full rounded-lg px-2.5 text-[0.82rem] text-primary outline-none placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
+                  placeholder={currentHouseholdName || '例如：我家宝宝'}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                <button
+                  type="button"
+                  onClick={onCreateHousehold}
+                  disabled={!canCreateHousehold}
+                  className={`action-tap mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg px-3 text-[0.8rem] font-semibold transition-opacity ${createButtonClass} ${canCreateHousehold ? '' : 'cursor-not-allowed opacity-72'}`}
+                >
+                  创建家庭
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-2.5">
+                <label
+                  htmlFor="inviteCode"
+                  className="block text-[0.66rem] uppercase tracking-[0.14em] text-muted"
+                >
+                  邀请码
+                </label>
+                <input
+                  id="inviteCode"
+                  value={inviteCodeDraft}
+                  onChange={(event) => onInviteCodeDraftChange(event.target.value)}
+                  className="control-surface mt-1.5 h-9 w-full rounded-lg px-2.5 font-mono text-[0.82rem] tracking-[0.08em] text-primary outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
+                  placeholder="例如：8fa0c1d2e3b4"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+                <button
+                  type="button"
+                  onClick={onJoinHousehold}
+                  disabled={!canJoinHousehold}
+                  className={`action-tap mt-2 inline-flex h-9 w-full items-center justify-center rounded-lg border px-3 text-[0.8rem] font-semibold transition-colors ${joinButtonClass} ${canJoinHousehold ? '' : 'cursor-not-allowed opacity-72'}`}
+                >
+                  加入当前家庭
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-3 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-3 text-[0.8rem] text-muted">

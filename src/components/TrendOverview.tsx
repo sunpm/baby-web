@@ -4,10 +4,10 @@ import type { TrendCardData, TrendDigestItem, TrendLatestItem } from '../lib/ins
 interface TrendOverviewProps {
   cards: TrendCardData[]
   latestItems: TrendLatestItem[]
-  todayItems: TrendDigestItem[]
+  recentItems: TrendDigestItem[]
 }
 
-export function TrendOverview({ cards, latestItems, todayItems }: TrendOverviewProps) {
+export function TrendOverview({ cards, latestItems, recentItems }: TrendOverviewProps) {
   const isEmpty = cards.every((card) => card.points.every((point) => point.value === 0))
 
   return (
@@ -18,7 +18,7 @@ export function TrendOverview({ cards, latestItems, todayItems }: TrendOverviewP
           趋势概览
         </div>
         <p className="mt-1 text-[0.84rem] leading-5 text-secondary">
-          先看今天，再看近 7 天，用更轻的走势线来读变化。
+          先看近24小时，再看近 7 天，用更轻的走势线来读变化。
         </p>
       </div>
 
@@ -28,19 +28,17 @@ export function TrendOverview({ cards, latestItems, todayItems }: TrendOverviewP
             <ChartLineUp size={20} />
           </div>
           <p className="mt-3 text-[0.94rem] font-medium text-primary">趋势还没开始累积</p>
-          <p className="mt-1 text-[0.8rem] text-muted">先用底部按钮记下一次，今天的数据会立刻进入趋势。</p>
+          <p className="mt-1 text-[0.8rem] text-muted">先用底部按钮记下一次，近24小时和近7天都会开始更新。</p>
         </div>
       ) : (
         <div className="space-y-2">
           <section className="surface rounded-lg p-2.5">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div>
-                <p className="text-[0.66rem] uppercase tracking-[0.14em] text-muted">今天汇总</p>
-                <h2 className="mt-1 text-[0.94rem] font-semibold text-primary">今天记了什么</h2>
-              </div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <ChartLineUp size={14} className="text-muted" />
+              <h2 className="text-[0.94rem] font-semibold text-primary">近24小时</h2>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {todayItems.map((item) => (
+              {recentItems.map((item) => (
                 <article
                   key={item.title}
                   className="rounded-lg border border-[var(--surface-border)] bg-[var(--control-bg)] px-2.5 py-2"
@@ -54,12 +52,9 @@ export function TrendOverview({ cards, latestItems, todayItems }: TrendOverviewP
           </section>
 
           <section className="surface rounded-lg p-2.5">
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center gap-2">
               <ClockCounterClockwise size={14} className="text-muted" />
-              <div>
-                <p className="text-[0.66rem] uppercase tracking-[0.14em] text-muted">最近一次</p>
-                <h2 className="mt-1 text-[0.94rem] font-semibold text-primary">最近一次记录时间</h2>
-              </div>
+              <h2 className="text-[0.94rem] font-semibold text-primary">各类型最近一次</h2>
             </div>
             <div className="space-y-1.5">
               {latestItems.map((item) => (

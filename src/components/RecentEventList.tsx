@@ -56,12 +56,11 @@ export function RecentEventList({
       className="mt-2 pb-0.5"
       aria-label="最近记录"
     >
-      <div className="mb-3 px-1">
+      <div className="mb-2 px-1">
         <div className="flex items-center gap-1.5 text-[0.65rem] font-medium uppercase tracking-[0.15em] text-muted">
           <ListHeart size={14} weight="fill" />
           最近记录
         </div>
-        <p className="mt-1 text-[0.8rem] text-secondary">点开编辑，向左滑就能删除。</p>
       </div>
 
       {isBooting && (

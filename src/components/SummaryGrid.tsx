@@ -16,14 +16,14 @@ export function SummaryGrid({
   syncEnabled,
 }: SummaryGridProps) {
   const items = [
-    { title: '喂奶', value: feedCount, detail: `${feedTotal} ml` },
-    { title: '拉粑粑', value: poopCount, detail: '近24h' },
-    { title: '益生菌', value: probioticCount, detail: '近24h' },
+    { title: '喂奶', value: feedCount, detail: `今天 ${feedTotal} ml` },
+    { title: '拉粑粑', value: poopCount, detail: '今天' },
+    { title: '益生菌', value: probioticCount, detail: '今天' },
     { title: '待同步', value: pendingCount, detail: syncEnabled ? '待发送' : '本地' },
   ]
 
   return (
-    <section className="grid grid-cols-4 gap-1.5" aria-label="24小时概览">
+    <section className="grid grid-cols-4 gap-1.5" aria-label="今日概览">
       {items.map((item) => (
         <div
           key={item.title}

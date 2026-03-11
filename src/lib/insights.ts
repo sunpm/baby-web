@@ -1,4 +1,10 @@
-import { dateGroupKey, dateGroupLabel, kindName, relativeMinutes, shortTime } from './ui'
+import {
+  dateGroupKey,
+  dateGroupLabel,
+  kindName,
+  relativeMinutes,
+  shortTime,
+} from './ui'
 import type { BabyEvent, EventKind } from './types'
 
 export interface SummaryData {
@@ -22,13 +28,6 @@ export interface TrendCardData {
   toneClass: string
 }
 
-export interface TrendDigestItem {
-  detail: string
-  title: string
-  toneClass: string
-  value: string
-}
-
 export interface TrendLatestItem {
   detail: string
   timeLabel: string
@@ -36,9 +35,16 @@ export interface TrendLatestItem {
   toneClass: string
 }
 
+export interface TrendDigestItem {
+  detail: string
+  title: string
+  toneClass: string
+  value: string
+}
+
 export interface TrendOverviewData {
   latestItems: TrendLatestItem[]
-  todayItems: TrendDigestItem[]
+  recentItems: TrendDigestItem[]
 }
 
 const TREND_KINDS = ['feeding', 'poop', 'probiotic'] as const satisfies readonly EventKind[]
@@ -80,7 +86,7 @@ export function eventDefaultAmount(event: BabyEvent) {
 }
 
 export function buildSummary(events: BabyEvent[]): SummaryData {
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
+  const todayKey = dateGroupKey(new Date())
 
   let feedCount = 0
   let feedTotal = 0
@@ -88,7 +94,7 @@ export function buildSummary(events: BabyEvent[]): SummaryData {
   let probioticCount = 0
 
   for (const event of events) {
-    if (Date.parse(event.eventAt) < oneDayAgo) {
+    if (dateGroupKey(event.eventAt) !== todayKey) {
       continue
     }
 
@@ -134,12 +140,12 @@ export function buildTrendCards(events: BabyEvent[]): TrendCardData[] {
 }
 
 export function buildTrendOverviewData(events: BabyEvent[]): TrendOverviewData {
-  const todayKey = dateGroupKey(new Date())
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000
 
-  let todayFeedCount = 0
-  let todayFeedTotal = 0
-  let todayPoopCount = 0
-  let todayProbioticCount = 0
+  let recentFeedCount = 0
+  let recentFeedTotal = 0
+  let recentPoopCount = 0
+  let recentProbioticCount = 0
 
   const latestByKind: Record<EventKind, BabyEvent | null> = {
     feeding: null,
@@ -148,14 +154,14 @@ export function buildTrendOverviewData(events: BabyEvent[]): TrendOverviewData {
   }
 
   for (const event of events) {
-    if (dateGroupKey(event.eventAt) === todayKey) {
+    if (Date.parse(event.eventAt) >= oneDayAgo) {
       if (event.kind === 'feeding') {
-        todayFeedCount += 1
-        todayFeedTotal += typeof event.amount === 'number' ? event.amount : 0
+        recentFeedCount += 1
+        recentFeedTotal += typeof event.amount === 'number' ? event.amount : 0
       } else if (event.kind === 'poop') {
-        todayPoopCount += 1
+        recentPoopCount += 1
       } else {
-        todayProbioticCount += 1
+        recentProbioticCount += 1
       }
     }
 
@@ -167,24 +173,24 @@ export function buildTrendOverviewData(events: BabyEvent[]): TrendOverviewData {
 
   return {
     latestItems: TREND_KINDS.map((kind) => buildLatestTrendItem(kind, latestByKind[kind])),
-    todayItems: [
+    recentItems: [
       {
-        detail: todayFeedCount > 0 ? `${todayFeedCount} 次` : '今天还没记',
+        detail: recentFeedCount > 0 ? `${recentFeedCount} 次` : '最近24h还没记',
         title: kindName('feeding'),
         toneClass: TREND_ITEM_TONE.feeding,
-        value: `${todayFeedTotal} ml`,
+        value: `${recentFeedTotal} ml`,
       },
       {
-        detail: todayPoopCount > 0 ? `${todayPoopCount} 次` : '今天还没记',
+        detail: recentPoopCount > 0 ? '最近24小时' : '最近24h还没记',
         title: kindName('poop'),
         toneClass: TREND_ITEM_TONE.poop,
-        value: `${todayPoopCount} 次`,
+        value: `${recentPoopCount} 次`,
       },
       {
-        detail: todayProbioticCount > 0 ? `${todayProbioticCount} 次` : '今天还没记',
+        detail: recentProbioticCount > 0 ? '最近24小时' : '最近24h还没记',
         title: kindName('probiotic'),
         toneClass: TREND_ITEM_TONE.probiotic,
-        value: `${todayProbioticCount} 次`,
+        value: `${recentProbioticCount} 次`,
       },
     ],
   }

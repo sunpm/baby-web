@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { EventEditorSheet } from './components/EventEditorSheet'
-import { FamilyPanelSheet } from './components/FamilyPanelSheet'
+import { FamilyPanelSheet, type FamilyPanelMode } from './components/FamilyPanelSheet'
 import { InstallGuideSheet } from './components/InstallGuideSheet'
 import { QuickActionBar } from './components/QuickActionBar'
 import { RecentEventList } from './components/RecentEventList'
@@ -63,6 +63,9 @@ function App() {
   const [doseAmount, setDoseAmount] = useState(1)
   const [composerKind, setComposerKind] = useState<EventKind>('feeding')
   const [showFamilyPanel, setShowFamilyPanel] = useState(Boolean(initialInviteCode))
+  const [familyPanelMode, setFamilyPanelMode] = useState<FamilyPanelMode>(
+    initialInviteCode ? 'join' : 'create',
+  )
   const [householdNameDraft, setHouseholdNameDraft] = useState(store.householdName)
   const [inviteCodeDraft, setInviteCodeDraft] = useState(initialInviteCode)
   const [familyMessage, setFamilyMessage] = useState(
@@ -145,6 +148,13 @@ function App() {
     },
     [familyMessage, setFamilyNotice],
   )
+
+  const handleFamilyPanelModeChange = useCallback((mode: FamilyPanelMode) => {
+    setFamilyPanelMode(mode)
+    if (familyMessage) {
+      setFamilyNotice('')
+    }
+  }, [familyMessage, setFamilyNotice])
 
   const commitMutation = useCallback((mutation: EventMutation) => {
     setStore((previous) => ({
@@ -296,6 +306,7 @@ function App() {
       setEditingEventId('')
       setUndoAction(null)
       setLastCreatedId('')
+      setFamilyPanelMode('create')
       setFamilyNotice('已创建家庭，现在可以把链接发给家人一起记录。', 'success')
       void syncNow(
         'manual',
@@ -330,6 +341,7 @@ function App() {
       setEditingEventId('')
       setUndoAction(null)
       setLastCreatedId('')
+      setFamilyPanelMode('join')
       setFamilyNotice('已加入家庭，之后的记录会同步到同一个空间。', 'success')
       void syncNow(
         'manual',
@@ -430,8 +442,9 @@ function App() {
   const toggleFamilyPanel = useCallback(() => {
     setEditingEventId('')
     setShowInstallGuide(false)
+    setFamilyPanelMode(inviteCodeDraft ? 'join' : 'create')
     setShowFamilyPanel((previous) => !previous)
-  }, [])
+  }, [inviteCodeDraft])
 
   const closeFamilyPanel = useCallback(() => {
     setShowFamilyPanel(false)
@@ -618,7 +631,7 @@ function App() {
           <TrendOverview
             cards={trendCards}
             latestItems={trendOverviewData.latestItems}
-            todayItems={trendOverviewData.todayItems}
+            recentItems={trendOverviewData.recentItems}
           />
         )}
       </main>
@@ -637,6 +650,7 @@ function App() {
         hasJoinedHousehold={hasJoinedHousehold}
         householdNameDraft={householdNameDraft}
         inviteCodeDraft={inviteCodeDraft}
+        mode={familyPanelMode}
         onClose={closeFamilyPanel}
         onCopyInviteCode={() => {
           void copyInviteCode()
@@ -649,6 +663,7 @@ function App() {
         onJoinHousehold={() => {
           void joinHousehold()
         }}
+        onModeChange={handleFamilyPanelModeChange}
         onShareInviteLink={() => {
           void shareInviteLink()
         }}

@@ -13,7 +13,11 @@ const tabs = [
 export function ViewTabs({ activeTab, onChange }: ViewTabsProps) {
   return (
     <nav className="surface rounded-[1.25rem] p-[0.3125rem]" aria-label="页面视图">
-      <div role="tablist" aria-label="记录与趋势切换" className="grid grid-cols-2 gap-1">
+      <div
+        role="tablist"
+        aria-label="记录与趋势切换"
+        className="grid grid-cols-2 gap-1 rounded-[1rem] bg-black/[0.03] p-[0.125rem] dark:bg-white/[0.03]"
+      >
         {tabs.map(({ id, label, Icon }) => {
           const isActive = activeTab === id
 
@@ -26,13 +30,16 @@ export function ViewTabs({ activeTab, onChange }: ViewTabsProps) {
               aria-selected={isActive}
               aria-controls={`panel-${id}`}
               onClick={() => onChange(id)}
-              className={`action-tap flex h-[2.15rem] items-center justify-center gap-1.5 rounded-[0.85rem] px-2.5 text-[0.82rem] font-semibold transition-colors ${isActive
-                  ? 'bg-white text-slate-900 shadow-[0_4px_12px_rgba(15,23,42,0.08)] ring-1 ring-slate-200 dark:bg-zinc-800 dark:text-white dark:ring-zinc-700'
-                  : 'text-secondary hover:bg-white/40 dark:hover:bg-white/5'
-                }`}
+              className={`action-tap relative flex h-[2.2rem] items-center justify-center gap-1.5 overflow-hidden rounded-[0.9rem] px-2.5 text-[0.82rem] font-semibold transition-colors ${isActive ? 'text-slate-900 dark:text-white' : 'text-secondary hover:bg-white/25 dark:hover:bg-white/4'}`}
             >
-              <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
-              <span>{label}</span>
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-0 rounded-[0.9rem] border transition-colors ${isActive ? 'border-slate-200 bg-white/96 ring-1 ring-black/4 dark:border-zinc-700 dark:bg-zinc-800 dark:ring-white/6' : 'border-transparent bg-transparent ring-0'}`}
+              />
+              <span className="relative z-[1] inline-flex items-center gap-1.5">
+                <Icon size={16} weight={isActive ? 'fill' : 'regular'} />
+                <span>{label}</span>
+              </span>
             </button>
           )
         })}

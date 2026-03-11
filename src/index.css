@@ -93,8 +93,17 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+}
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 ::selection {
