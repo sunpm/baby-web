@@ -4,12 +4,14 @@ import {
   CheckCircle,
   CloudCheck,
   CloudSlash,
+  DownloadSimple,
   LinkSimple,
   MoonStars,
   UsersThree,
   WarningCircle,
 } from '@phosphor-icons/react'
 import { buildSyncLabel, getSyncBadgeClass, shortTime } from '../lib/ui'
+import type { InstallEntryTone } from '../hooks/usePwaInstall'
 import type { SyncPhase } from '../lib/types'
 
 interface StatusHeaderProps {
@@ -18,21 +20,17 @@ interface StatusHeaderProps {
   familyMessage: string
   familyMessageTone: 'neutral' | 'success' | 'error'
   hasJoinedHousehold: boolean
-  householdNameDraft: string
-  inviteCodeDraft: string
+  installButtonTone: InstallEntryTone | null
   lastSyncedAt?: string
   needRefresh: boolean
   offlineReady: boolean
-  onCopyInviteCode: () => void
-  onCreateHousehold: () => void
-  onHouseholdNameDraftChange: (value: string) => void
-  onInviteCodeDraftChange: (value: string) => void
-  onJoinHousehold: () => void
+  onInstallClick: () => void
   onShareInviteLink: () => void
   onSyncNow: () => void
   onToggleFamilyPanel: () => void
   onUpdateServiceWorker: () => void
   showFamilyPanel: boolean
+  showInstallEntry: boolean
   syncEnabled: boolean
   syncMessage: string
   syncPhase: SyncPhase
@@ -44,14 +42,17 @@ export function StatusHeader({
   familyMessage,
   familyMessageTone,
   hasJoinedHousehold,
+  installButtonTone,
   lastSyncedAt,
   needRefresh,
   offlineReady,
+  onInstallClick,
   onShareInviteLink,
   onSyncNow,
   onToggleFamilyPanel,
   onUpdateServiceWorker,
   showFamilyPanel,
+  showInstallEntry,
   syncEnabled,
   syncMessage,
   syncPhase,
@@ -75,6 +76,10 @@ export function StatusHeader({
   const syncButtonClass = syncButtonDisabled
     ? 'border-cyan-400/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-100'
     : 'border-[var(--surface-border-strong)] bg-[var(--surface-bg)] text-secondary shadow-[0_4px_10px_rgba(15,23,42,0.06)] dark:shadow-[0_6px_14px_rgba(2,6,23,0.22)]'
+  const installButtonClass =
+    installButtonTone === 'native'
+      ? 'border-emerald-400/40 bg-emerald-400/12 text-emerald-700 shadow-[0_4px_12px_rgba(16,185,129,0.14)] dark:text-emerald-200'
+      : 'border-[var(--surface-border-strong)] bg-[var(--surface-bg)] text-secondary shadow-[0_4px_10px_rgba(15,23,42,0.06)] dark:shadow-[0_6px_14px_rgba(2,6,23,0.22)]'
 
   return (
     <header className="surface overflow-hidden px-4 py-3.5 sm:px-5 sm:py-4">
@@ -108,26 +113,38 @@ export function StatusHeader({
           )}
         </div>
 
-        {syncEnabled && (
-          <button
-            type="button"
-            onClick={onSyncNow}
-            disabled={syncButtonDisabled}
-            className={`action-tap inline-flex h-[2rem] shrink-0 items-center gap-[0.3125rem] rounded-xl border px-[0.6rem] text-[0.75rem] font-medium ${syncButtonClass} ${syncButtonDisabled ? 'cursor-default' : ''}`}
-          >
-            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/4 dark:bg-white/8">
-              <ArrowClockwise size={10} className={syncButtonDisabled ? 'animate-spin' : ''} />
-            </span>
-            {syncButtonDisabled ? '同步中' : '同步'}
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {showInstallEntry && (
+            <button
+              type="button"
+              onClick={onInstallClick}
+              className={`action-tap inline-flex h-[2rem] shrink-0 items-center gap-[0.3125rem] rounded-xl border px-[0.6rem] text-[0.75rem] font-medium ${installButtonClass}`}
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/4 dark:bg-white/8">
+                <DownloadSimple size={10} />
+              </span>
+              安装
+            </button>
+          )}
+
+          {syncEnabled && (
+            <button
+              type="button"
+              onClick={onSyncNow}
+              disabled={syncButtonDisabled}
+              className={`action-tap inline-flex h-[2rem] shrink-0 items-center gap-[0.3125rem] rounded-xl border px-[0.6rem] text-[0.75rem] font-medium ${syncButtonClass} ${syncButtonDisabled ? 'cursor-default' : ''}`}
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/4 dark:bg-white/8">
+                <ArrowClockwise size={10} className={syncButtonDisabled ? 'animate-spin' : ''} />
+              </span>
+              {syncButtonDisabled ? '同步中' : '同步'}
+            </button>
+          )}
+        </div>
       </div>
 
       <section
-        className={`mt-2 rounded-2xl bg-black/[0.02] px-3.5 py-3 ring-1 dark:bg-white/[0.02] ${showFamilyPanel
-            ? 'ring-emerald-400 shadow-[0_8px_18px_rgba(16,185,129,0.08)]'
-            : 'ring-[var(--surface-border)]'
-          }`}
+        className={`mt-2 rounded-2xl bg-black/[0.02] px-3.5 py-3 ring-1 dark:bg-white/[0.02] ${showFamilyPanel ? 'ring-emerald-400 shadow-[0_8px_18px_rgba(16,185,129,0.08)]' : 'ring-[var(--surface-border)]'}`}
       >
         <div className="flex items-center gap-1.5">
           <button

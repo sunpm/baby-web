@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { EventEditorSheet } from './components/EventEditorSheet'
 import { FamilyPanelSheet } from './components/FamilyPanelSheet'
+import { InstallGuideSheet } from './components/InstallGuideSheet'
 import { QuickActionBar } from './components/QuickActionBar'
 import { RecentEventList } from './components/RecentEventList'
 import { StatusHeader } from './components/StatusHeader'
@@ -9,6 +10,7 @@ import { SummaryGrid } from './components/SummaryGrid'
 import { TrendOverview } from './components/TrendOverview'
 import { UndoToast } from './components/UndoToast'
 import { ViewTabs } from './components/ViewTabs'
+import { usePwaInstall } from './hooks/usePwaInstall'
 import { useStoreSync } from './hooks/useStoreSync'
 import {
   buildSummary,
@@ -76,6 +78,7 @@ function App() {
   const [draftNote, setDraftNote] = useState('')
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
   const [activeTab, setActiveTab] = useState<'log' | 'trends'>('log')
+  const [showInstallGuide, setShowInstallGuide] = useState(false)
 
   const storeRef = useRef(store)
   const composerRef = useRef<HTMLElement | null>(null)
@@ -89,6 +92,13 @@ function App() {
     setStore,
     store,
   })
+  const {
+    entryTone: installEntryTone,
+    guideMode: installGuideMode,
+    isInstalled,
+    requestInstall,
+    showInstallEntry,
+  } = usePwaInstall()
 
   const editingEvent = useMemo(() => {
     if (!editingEventId) {
@@ -401,13 +411,34 @@ function App() {
     void syncNow('manual')
   }, [syncNow])
 
+  const handleInstallClick = useCallback(async () => {
+    setShowFamilyPanel(false)
+    setEditingEventId('')
+
+    const result = await requestInstall()
+
+    if (result === 'guide' && installGuideMode) {
+      setShowInstallGuide(true)
+      return
+    }
+
+    if (result === 'unavailable') {
+      setFamilyNotice('当前浏览器暂时没有可用安装入口，建议用 HTTPS 下的 Chrome 或 Edge 打开。', 'error')
+    }
+  }, [installGuideMode, requestInstall, setFamilyNotice])
+
   const toggleFamilyPanel = useCallback(() => {
     setEditingEventId('')
+    setShowInstallGuide(false)
     setShowFamilyPanel((previous) => !previous)
   }, [])
 
   const closeFamilyPanel = useCallback(() => {
     setShowFamilyPanel(false)
+  }, [])
+
+  const closeInstallGuide = useCallback(() => {
+    setShowInstallGuide(false)
   }, [])
 
   useEffect(() => {
@@ -532,21 +563,12 @@ function App() {
           familyMessage={familyMessage}
           familyMessageTone={familyMessageTone}
           hasJoinedHousehold={hasJoinedHousehold}
-          householdNameDraft={householdNameDraft}
-          inviteCodeDraft={inviteCodeDraft}
+          installButtonTone={installEntryTone}
           lastSyncedAt={store.lastSyncedAt}
           needRefresh={needRefresh[0]}
           offlineReady={offlineReady[0]}
-          onCopyInviteCode={() => {
-            void copyInviteCode()
-          }}
-          onCreateHousehold={() => {
-            void createHousehold()
-          }}
-          onHouseholdNameDraftChange={handleHouseholdNameDraftChange}
-          onInviteCodeDraftChange={handleInviteCodeDraftChange}
-          onJoinHousehold={() => {
-            void joinHousehold()
+          onInstallClick={() => {
+            void handleInstallClick()
           }}
           onShareInviteLink={() => {
             void shareInviteLink()
@@ -557,6 +579,7 @@ function App() {
             void updateServiceWorker(true)
           }}
           showFamilyPanel={showFamilyPanel}
+          showInstallEntry={showInstallEntry}
           syncEnabled={hasSupabaseConfig}
           syncMessage={syncMessage}
           syncPhase={syncPhase}
@@ -599,6 +622,12 @@ function App() {
           />
         )}
       </main>
+
+      <InstallGuideSheet
+        mode={installGuideMode}
+        onClose={closeInstallGuide}
+        show={showInstallGuide && !isInstalled}
+      />
 
       <FamilyPanelSheet
         currentHouseholdInviteCode={store.householdInviteCode}

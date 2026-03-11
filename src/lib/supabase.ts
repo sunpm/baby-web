@@ -72,7 +72,7 @@ function toMembership(row: HouseholdMembershipRow): HouseholdMembership {
   }
 }
 
-async function ensureSession() {
+export async function ensureSupabaseSession() {
   if (!supabaseClient) {
     throw new Error('Supabase is not configured.')
   }
@@ -105,7 +105,7 @@ export async function fetchCurrentHouseholdMembership() {
     return null as HouseholdMembership | null
   }
 
-  await ensureSession()
+  await ensureSupabaseSession()
   const result = await supabaseClient.rpc('get_my_household').maybeSingle()
 
   if (result.error) {
@@ -123,7 +123,7 @@ export async function createHouseholdMembership(householdName: string) {
     throw new Error('Supabase is not configured.')
   }
 
-  await ensureSession()
+  await ensureSupabaseSession()
   const result = await supabaseClient
     .rpc('create_household_with_profile', { p_display_name: householdName })
     .single()
@@ -140,7 +140,7 @@ export async function joinHouseholdMembership(inviteCode: string) {
     throw new Error('Supabase is not configured.')
   }
 
-  await ensureSession()
+  await ensureSupabaseSession()
   const result = await supabaseClient
     .rpc('join_household_with_invite', { p_invite_code: inviteCode })
     .single()
@@ -157,6 +157,7 @@ export async function pushPendingMutations(mutations: EventMutation[]) {
     return
   }
 
+  await ensureSupabaseSession()
   const { upserts, deletes } = squashMutations(mutations)
 
   if (upserts.length > 0) {
@@ -170,10 +171,7 @@ export async function pushPendingMutations(mutations: EventMutation[]) {
   }
 
   if (deletes.length > 0) {
-    const deleteResult = await supabaseClient
-      .from('baby_events')
-      .delete()
-      .in('id', deletes)
+    const deleteResult = await supabaseClient.from('baby_events').delete().in('id', deletes)
 
     if (deleteResult.error) {
       throw deleteResult.error
@@ -186,6 +184,7 @@ export async function fetchHouseholdEvents(householdId: string, limit = 240) {
     return [] as BabyEvent[]
   }
 
+  await ensureSupabaseSession()
   const result = await supabaseClient
     .from('baby_events')
     .select(

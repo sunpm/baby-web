@@ -7,6 +7,7 @@ import {
   remapMutationHousehold,
 } from '../lib/storage'
 import {
+  ensureSupabaseSession,
   fetchCurrentHouseholdMembership,
   fetchHouseholdEvents,
   hasSupabaseConfig,
@@ -46,32 +47,28 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
     storeRef.current = store
   }, [store])
 
-  const resolveHouseholdMembership = useCallback(
-    async (override?: HouseholdMembership) => {
-      if (override) {
-        return override
-      }
+  const resolveHouseholdMembership = useCallback(async (override?: HouseholdMembership) => {
+    if (override) {
+      return override
+    }
 
-      const persistedMembership =
-        isLocalHouseholdId(storeRef.current.householdId)
-          ? null
-          : {
-              householdId: storeRef.current.householdId,
-              householdInviteCode: storeRef.current.householdInviteCode ?? '',
-              householdName: storeRef.current.householdName,
-            }
-
-      if (!persistedMembership || !storeRef.current.householdInviteCode) {
-        const remoteMembership = await fetchCurrentHouseholdMembership()
-        if (remoteMembership) {
-          return remoteMembership
+    const persistedMembership = isLocalHouseholdId(storeRef.current.householdId)
+      ? null
+      : {
+          householdId: storeRef.current.householdId,
+          householdInviteCode: storeRef.current.householdInviteCode ?? '',
+          householdName: storeRef.current.householdName,
         }
-      }
 
-      return persistedMembership
-    },
-    [],
-  )
+    if (!persistedMembership || !storeRef.current.householdInviteCode) {
+      const remoteMembership = await fetchCurrentHouseholdMembership()
+      if (remoteMembership) {
+        return remoteMembership
+      }
+    }
+
+    return persistedMembership
+  }, [])
 
   const performSync = useCallback(
     async ({ householdOverride, reason, replaceLocalHouseholdData }: SyncRequest) => {
@@ -277,11 +274,30 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
       return
     }
 
-    const unsubscribe = subscribeHouseholdEvents(store.householdId, () => {
-      void syncNow('realtime')
-    })
+    let unsubscribe: (() => void) | null = null
+    let cancelled = false
+
+    void ensureSupabaseSession()
+      .then(() => {
+        if (cancelled) {
+          return
+        }
+
+        unsubscribe = subscribeHouseholdEvents(store.householdId, () => {
+          void syncNow('realtime')
+        })
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return
+        }
+
+        setSyncPhase('error')
+        setSyncMessage(getErrorMessage(error))
+      })
 
     return () => {
+      cancelled = true
       unsubscribe?.()
     }
   }, [store.householdId, syncNow])

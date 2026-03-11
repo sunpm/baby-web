@@ -3,19 +3,24 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/baby-log-icon.svg'],
+      includeAssets: [
+        'icons/baby-log-icon.svg',
+        'icons/baby-log-icon-192.png',
+        'icons/baby-log-icon-512.png',
+        'icons/apple-touch-icon-180.png',
+      ],
       manifest: {
-        name: 'Baby Log PWA',
-        short_name: 'BabyLog',
-        description:
-          'Quick one-hand baby tracker for feeding, poop, and probiotics.',
+        id: '/',
+        lang: 'zh-CN',
+        name: '宝宝记录',
+        short_name: '宝宝记录',
+        description: '一键记录喂奶、拉粑粑、益生菌，支持离线和家人跨设备同步。',
         theme_color: '#0c111b',
         background_color: '#080b12',
         display: 'standalone',
@@ -24,10 +29,22 @@ export default defineConfig({
         categories: ['lifestyle', 'health'],
         icons: [
           {
+            src: '/icons/baby-log-icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
+            src: '/icons/baby-log-icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
             src: '/icons/baby-log-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
         ],
       },
