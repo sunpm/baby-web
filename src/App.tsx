@@ -74,10 +74,26 @@ function App() {
     () => !isLocalHouseholdId(store.householdId),
     [store.householdId],
   )
+  const isTrendTab = activeTab === 'trends'
   const summary = useMemo(() => buildSummary(store.events), [store.events])
-  const trendCards = useMemo(() => buildTrendCards(store.events), [store.events])
-  const trendOverviewData = useMemo(() => buildTrendOverviewData(store.events), [store.events])
-  const recentEvents = useMemo(() => store.events.slice(0, RECENT_EVENT_LIMIT), [store.events])
+  const trendCards = useMemo(
+    () => (isTrendTab ? buildTrendCards(store.events) : []),
+    [isTrendTab, store.events],
+  )
+  const trendOverviewData = useMemo(
+    () =>
+      isTrendTab
+        ? buildTrendOverviewData(store.events)
+        : {
+            latestItems: [],
+            recentItems: [],
+          },
+    [isTrendTab, store.events],
+  )
+  const recentEvents = useMemo(
+    () => (isTrendTab ? [] : store.events.slice(0, RECENT_EVENT_LIMIT)),
+    [isTrendTab, store.events],
+  )
   const pendingCount = useMemo(
     () => countPendingRecords(store.pendingMutations),
     [store.pendingMutations],
