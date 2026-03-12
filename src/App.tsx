@@ -158,8 +158,26 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('app-mounted'))
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    let frameOneId = 0
+    let frameTwoId = 0
+
+    frameOneId = window.requestAnimationFrame(() => {
+      frameTwoId = window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('app-mounted'))
+      })
+    })
+
+    return () => {
+      if (frameOneId) {
+        window.cancelAnimationFrame(frameOneId)
+      }
+      if (frameTwoId) {
+        window.cancelAnimationFrame(frameTwoId)
+      }
     }
   }, [])
 
