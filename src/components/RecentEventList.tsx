@@ -10,6 +10,7 @@ interface RecentEventListProps {
   lastCreatedId: string
   onDeleteEvent: (eventId: string) => void
   onEditEvent: (eventId: string) => void
+  viewerDeviceId: string
 }
 
 interface EventGroup {
@@ -25,6 +26,7 @@ interface EventGroupSectionProps {
   onEditEvent: (eventId: string) => void
   onSetSwipeOpen: (eventId: string | null) => void
   swipeOpenEventId: string | null
+  viewerDeviceId: string
 }
 
 function isIdInsideGroup(group: EventGroup, eventId: string | null) {
@@ -47,6 +49,7 @@ const EventGroupSection = memo(
     onEditEvent,
     onSetSwipeOpen,
     swipeOpenEventId,
+    viewerDeviceId,
   }: EventGroupSectionProps) {
     return (
       <section className="pb-1">
@@ -66,6 +69,7 @@ const EventGroupSection = memo(
               onDeleteEvent={onDeleteEvent}
               onEditEvent={onEditEvent}
               onSetSwipeOpen={onSetSwipeOpen}
+              viewerDeviceId={viewerDeviceId}
             />
           ))}
         </ul>
@@ -77,7 +81,8 @@ const EventGroupSection = memo(
       prevProps.group !== nextProps.group ||
       prevProps.onDeleteEvent !== nextProps.onDeleteEvent ||
       prevProps.onEditEvent !== nextProps.onEditEvent ||
-      prevProps.onSetSwipeOpen !== nextProps.onSetSwipeOpen
+      prevProps.onSetSwipeOpen !== nextProps.onSetSwipeOpen ||
+      prevProps.viewerDeviceId !== nextProps.viewerDeviceId
     ) {
       return false
     }
@@ -99,6 +104,7 @@ export function RecentEventList({
   lastCreatedId,
   onDeleteEvent,
   onEditEvent,
+  viewerDeviceId,
 }: RecentEventListProps) {
   const [swipeOpenEventId, setSwipeOpenEventId] = useState<string | null>(null)
   const activeSwipeOpenEventId = useMemo(
@@ -187,6 +193,7 @@ export function RecentEventList({
               onEditEvent={handleEditEvent}
               onSetSwipeOpen={setSwipeOpenEventId}
               swipeOpenEventId={activeSwipeOpenEventId}
+              viewerDeviceId={viewerDeviceId}
             />
           ))}
         </div>

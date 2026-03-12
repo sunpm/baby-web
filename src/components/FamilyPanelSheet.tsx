@@ -1,6 +1,7 @@
 import {
   CheckCircle,
   CopySimple,
+  DownloadSimple,
   LinkSimple,
   UsersThree,
   WarningCircle,
@@ -25,6 +26,8 @@ interface FamilyPanelSheetProps {
   onInviteCodeDraftChange: (value: string) => void
   onJoinHousehold: () => void
   onModeChange: (mode: FamilyPanelMode) => void
+  onExportCsv: () => void
+  onExportJson: () => void
   onShareInviteLink: () => void
   show: boolean
   syncEnabled: boolean
@@ -46,6 +49,8 @@ export function FamilyPanelSheet({
   onInviteCodeDraftChange,
   onJoinHousehold,
   onModeChange,
+  onExportCsv,
+  onExportJson,
   onShareInviteLink,
   show,
   syncEnabled,
@@ -234,6 +239,29 @@ export function FamilyPanelSheet({
             配置 Supabase URL 和 Anon Key 后，这里会出现创建家庭、加入家庭、分享链接等能力。
           </div>
         )}
+
+        <div className="mt-2.5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-bg)] px-3 py-2.5">
+          <p className="text-[0.66rem] uppercase tracking-[0.14em] text-muted">数据备份</p>
+          <p className="mt-2 text-[0.78rem] text-secondary">导出当前设备数据</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onExportCsv}
+              className="action-tap inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-[var(--surface-border-strong)] bg-[var(--control-bg)] px-2.5 text-[0.76rem] font-medium text-secondary"
+            >
+              <DownloadSimple size={13} />
+              导出 CSV
+            </button>
+            <button
+              type="button"
+              onClick={onExportJson}
+              className="action-tap inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-[var(--surface-border-strong)] bg-[var(--control-bg)] px-2.5 text-[0.76rem] font-medium text-secondary"
+            >
+              <DownloadSimple size={13} />
+              导出 JSON
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   )

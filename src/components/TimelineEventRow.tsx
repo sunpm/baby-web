@@ -18,6 +18,7 @@ interface TimelineEventRowProps {
   onDeleteEvent: (eventId: string) => void
   onEditEvent: (eventId: string) => void
   onSetSwipeOpen: (eventId: string | null) => void
+  viewerDeviceId: string
 }
 
 function TimelineEventRowImpl({
@@ -27,6 +28,7 @@ function TimelineEventRowImpl({
   onDeleteEvent,
   onEditEvent,
   onSetSwipeOpen,
+  viewerDeviceId,
 }: TimelineEventRowProps) {
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -40,6 +42,11 @@ function TimelineEventRowImpl({
   const amountLabel = useMemo(() => formatEventAmount(event), [event])
   const timeLabel = useMemo(() => shortTime(event.eventAt), [event.eventAt])
   const relativeTimeLabel = useMemo(() => relativeMinutes(event.eventAt), [event.eventAt])
+  const sourceLabel = event.createdByDeviceId === viewerDeviceId ? '本机' : '协同'
+  const sourceLabelClass =
+    sourceLabel === '本机'
+      ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/35 dark:bg-emerald-500/20 dark:text-emerald-200'
+      : 'border-cyan-400/35 bg-cyan-500/12 text-cyan-700 dark:border-cyan-400/40 dark:bg-cyan-500/20 dark:text-cyan-200'
 
   const handlePointerDown = (clientX: number) => {
     draggingRef.current = true
@@ -162,7 +169,14 @@ function TimelineEventRowImpl({
                 编辑
               </span>
             </div>
-            <p className="mt-1.5 text-[0.7rem] text-muted">{relativeTimeLabel}</p>
+            <div className="mt-1.5 flex items-center justify-end gap-1.5">
+              <p className="text-[0.7rem] text-muted">{relativeTimeLabel}</p>
+              <span
+                className={`inline-flex items-center rounded-md border px-1.5 py-[1px] text-[0.62rem] font-medium tracking-[0.03em] ${sourceLabelClass}`}
+              >
+                {sourceLabel}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -178,5 +192,6 @@ export const TimelineEventRow = memo(
     prevProps.isSwipeOpen === nextProps.isSwipeOpen &&
     prevProps.onDeleteEvent === nextProps.onDeleteEvent &&
     prevProps.onEditEvent === nextProps.onEditEvent &&
-    prevProps.onSetSwipeOpen === nextProps.onSetSwipeOpen,
+    prevProps.onSetSwipeOpen === nextProps.onSetSwipeOpen &&
+    prevProps.viewerDeviceId === nextProps.viewerDeviceId,
 )

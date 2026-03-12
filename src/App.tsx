@@ -10,6 +10,7 @@ import { useEventComposer } from './hooks/useEventComposer'
 import { useFamilySharing } from './hooks/useFamilySharing'
 import { usePwaInstall } from './hooks/usePwaInstall'
 import { useStoreSync } from './hooks/useStoreSync'
+import { buildEventExportCsv, buildEventExportJson, downloadTextFile } from './lib/export'
 import { buildSummary, buildTrendCards, buildTrendOverviewData } from './lib/insights'
 import { hasSupabaseConfig } from './lib/supabase'
 import { countPendingRecords, isLocalHouseholdId, loadStore, persistStore } from './lib/storage'
@@ -33,6 +34,20 @@ const FamilyPanelSheet = lazy(async () => ({
 const EventEditorSheet = lazy(async () => ({
   default: (await import('./components/EventEditorSheet')).EventEditorSheet,
 }))
+
+function toSafeFileSegment(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return 'feeding-log'
+  }
+
+  return (
+    trimmed
+      .replace(/\s+/g, '-')
+      .replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '')
+      .slice(0, 24) || 'feeding-log'
+  )
+}
 
 function App() {
   const [store, setStore] = useState<AppStore>(() => loadStore(DEFAULT_HOUSEHOLD_NAME))
@@ -102,6 +117,38 @@ function App() {
   const handleManualSync = useCallback(() => {
     void syncNow('manual')
   }, [syncNow])
+
+  const handleExportCsv = useCallback(() => {
+    try {
+      const fileDate = new Date().toISOString().slice(0, 10)
+      const filePrefix = `${toSafeFileSegment(store.householdName)}-${fileDate}`
+
+      downloadTextFile(
+        `${filePrefix}.csv`,
+        buildEventExportCsv(store.events),
+        'text/csv;charset=utf-8',
+      )
+      familySharing.notifyFamily('已导出 CSV 备份。', 'success')
+    } catch {
+      familySharing.notifyFamily('导出失败，请稍后重试。', 'error')
+    }
+  }, [familySharing, store.events, store.householdName])
+
+  const handleExportJson = useCallback(() => {
+    try {
+      const fileDate = new Date().toISOString().slice(0, 10)
+      const filePrefix = `${toSafeFileSegment(store.householdName)}-${fileDate}`
+
+      downloadTextFile(
+        `${filePrefix}.json`,
+        buildEventExportJson(store),
+        'application/json;charset=utf-8',
+      )
+      familySharing.notifyFamily('已导出 JSON 备份。', 'success')
+    } catch {
+      familySharing.notifyFamily('导出失败，请稍后重试。', 'error')
+    }
+  }, [familySharing, store])
 
   const handleInstallClick = useCallback(async () => {
     familySharing.closeFamilyPanel()
@@ -307,6 +354,7 @@ function App() {
             lastCreatedId={composer.lastCreatedId}
             onDeleteEvent={composer.deleteEventById}
             onEditEvent={composer.openEventEditor}
+            viewerDeviceId={store.deviceId}
           />
         ) : (
           <Suspense
@@ -359,6 +407,8 @@ function App() {
               void familySharing.joinHousehold()
             }}
             onModeChange={familySharing.handleFamilyPanelModeChange}
+            onExportCsv={handleExportCsv}
+            onExportJson={handleExportJson}
             onShareInviteLink={() => {
               void familySharing.shareInviteLink()
             }}
