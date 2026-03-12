@@ -1,99 +1,66 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
-import { EventEditorSheet } from './components/EventEditorSheet'
-import { FamilyPanelSheet, type FamilyPanelMode } from './components/FamilyPanelSheet'
-import { InstallGuideSheet } from './components/InstallGuideSheet'
 import { QuickActionBar } from './components/QuickActionBar'
 import { RecentEventList } from './components/RecentEventList'
 import { StatusHeader } from './components/StatusHeader'
 import { SummaryGrid } from './components/SummaryGrid'
-import { TrendOverview } from './components/TrendOverview'
 import { UndoToast } from './components/UndoToast'
 import { ViewTabs } from './components/ViewTabs'
+import { useEventComposer } from './hooks/useEventComposer'
+import { useFamilySharing } from './hooks/useFamilySharing'
 import { usePwaInstall } from './hooks/usePwaInstall'
 import { useStoreSync } from './hooks/useStoreSync'
-import {
-  buildSummary,
-  buildTrendCards,
-  buildTrendOverviewData,
-  eventDefaultAmount,
-} from './lib/insights'
-import {
-  createHouseholdMembership,
-  hasSupabaseConfig,
-  joinHouseholdMembership,
-} from './lib/supabase'
-import {
-  applyMutations,
-  countPendingRecords,
-  createDeleteMutation,
-  createEvent,
-  createUpsertMutation,
-  isLocalHouseholdId,
-  loadStore,
-  persistStore,
-} from './lib/storage'
-import {
-  buildInviteShareUrl,
-  getErrorMessage,
-  kindName,
-  normalizeHouseholdName,
-  normalizeInviteCode,
-  parsePositiveInt,
-  readInviteCodeFromUrl,
-} from './lib/ui'
-import type { AppStore, BabyEvent, EventKind, EventMutation } from './lib/types'
-
-type UndoAction =
-  | { label: string; type: 'create'; event: BabyEvent }
-  | { label: string; type: 'update'; event: BabyEvent; previousEvent: BabyEvent }
-  | { label: string; type: 'delete'; event: BabyEvent }
-
-type FamilyMessageTone = 'neutral' | 'success' | 'error'
+import { buildSummary, buildTrendCards, buildTrendOverviewData } from './lib/insights'
+import { hasSupabaseConfig } from './lib/supabase'
+import { countPendingRecords, isLocalHouseholdId, loadStore, persistStore } from './lib/storage'
+import { normalizeHouseholdName } from './lib/ui'
+import type { AppStore } from './lib/types'
 
 const DEFAULT_HOUSEHOLD_NAME = normalizeHouseholdName(
   import.meta.env.VITE_BABY_HOUSEHOLD_NAME ?? '我家宝宝',
 )
 const RECENT_EVENT_LIMIT = 30
+const STORE_PERSIST_DEBOUNCE_MS = 260
+const TrendOverview = lazy(async () => ({
+  default: (await import('./components/TrendOverview')).TrendOverview,
+}))
+const InstallGuideSheet = lazy(async () => ({
+  default: (await import('./components/InstallGuideSheet')).InstallGuideSheet,
+}))
+const FamilyPanelSheet = lazy(async () => ({
+  default: (await import('./components/FamilyPanelSheet')).FamilyPanelSheet,
+}))
+const EventEditorSheet = lazy(async () => ({
+  default: (await import('./components/EventEditorSheet')).EventEditorSheet,
+}))
 
 function App() {
   const [store, setStore] = useState<AppStore>(() => loadStore(DEFAULT_HOUSEHOLD_NAME))
-  const initialInviteCode = readInviteCodeFromUrl()
-  const [milkAmountInput, setMilkAmountInput] = useState('90')
-  const [doseAmount, setDoseAmount] = useState(1)
-  const [composerKind, setComposerKind] = useState<EventKind>('feeding')
-  const [showFamilyPanel, setShowFamilyPanel] = useState(Boolean(initialInviteCode))
-  const [familyPanelMode, setFamilyPanelMode] = useState<FamilyPanelMode>(
-    initialInviteCode ? 'join' : 'create',
-  )
-  const [householdNameDraft, setHouseholdNameDraft] = useState(store.householdName)
-  const [inviteCodeDraft, setInviteCodeDraft] = useState(initialInviteCode)
-  const [familyMessage, setFamilyMessage] = useState(
-    initialInviteCode ? '已从分享链接填入邀请码，点加入即可。' : '',
-  )
-  const [familyMessageTone, setFamilyMessageTone] = useState<FamilyMessageTone>(
-    initialInviteCode ? 'neutral' : 'success',
-  )
-  const [lastCreatedId, setLastCreatedId] = useState('')
-  const [composerHeight, setComposerHeight] = useState(0)
-  const [editingEventId, setEditingEventId] = useState('')
-  const [draftAmount, setDraftAmount] = useState('')
-  const [draftNote, setDraftNote] = useState('')
-  const [undoAction, setUndoAction] = useState<UndoAction | null>(null)
   const [activeTab, setActiveTab] = useState<'log' | 'trends'>('log')
   const [showInstallGuide, setShowInstallGuide] = useState(false)
+  const [composerHeight, setComposerHeight] = useState(0)
 
-  const storeRef = useRef(store)
   const composerRef = useRef<HTMLElement | null>(null)
+  const storeRef = useRef(store)
+  const persistTimerRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    storeRef.current = store
-  }, [store])
-
-  const { needRefresh, offlineReady, updateServiceWorker } = useRegisterSW()
+  const { needRefresh, offlineReady, updateServiceWorker } = useRegisterSW({
+    immediate: true,
+  })
   const { isBooting, syncMessage, syncNow, syncPhase } = useStoreSync({
     setStore,
     store,
+  })
+
+  const composer = useEventComposer({ setStore, store })
+  const familySharing = useFamilySharing({
+    onPanelToggle: () => {
+      composer.closeEditor()
+      setShowInstallGuide(false)
+    },
+    onSyncLifecycleReset: composer.resetTransientState,
+    store,
+    syncNow,
   })
   const {
     entryTone: installEntryTone,
@@ -102,14 +69,6 @@ function App() {
     requestInstall,
     showInstallEntry,
   } = usePwaInstall()
-
-  const editingEvent = useMemo(() => {
-    if (!editingEventId) {
-      return null
-    }
-
-    return store.events.find((event) => event.id === editingEventId) ?? null
-  }, [editingEventId, store.events])
 
   const hasJoinedHousehold = useMemo(
     () => !isLocalHouseholdId(store.householdId),
@@ -124,308 +83,13 @@ function App() {
     [store.pendingMutations],
   )
 
-  const setFamilyNotice = useCallback((message: string, tone: FamilyMessageTone = 'neutral') => {
-    setFamilyMessage(message)
-    setFamilyMessageTone(tone)
-  }, [])
-
-  const handleHouseholdNameDraftChange = useCallback(
-    (value: string) => {
-      setHouseholdNameDraft(value)
-      if (familyMessage) {
-        setFamilyNotice('')
-      }
-    },
-    [familyMessage, setFamilyNotice],
-  )
-
-  const handleInviteCodeDraftChange = useCallback(
-    (value: string) => {
-      setInviteCodeDraft(normalizeInviteCode(value))
-      if (familyMessage) {
-        setFamilyNotice('')
-      }
-    },
-    [familyMessage, setFamilyNotice],
-  )
-
-  const handleFamilyPanelModeChange = useCallback((mode: FamilyPanelMode) => {
-    setFamilyPanelMode(mode)
-    if (familyMessage) {
-      setFamilyNotice('')
-    }
-  }, [familyMessage, setFamilyNotice])
-
-  const commitMutation = useCallback((mutation: EventMutation) => {
-    setStore((previous) => ({
-      ...previous,
-      events: applyMutations(previous.events, [mutation]),
-      pendingMutations: [...previous.pendingMutations, mutation],
-    }))
-  }, [])
-
-  const addEvent = useCallback(
-    (kind: EventKind) => {
-      const payload =
-        kind === 'feeding'
-          ? { amount: parsePositiveInt(milkAmountInput, 90), unit: 'ml' as const }
-          : kind === 'probiotic'
-            ? { amount: doseAmount, unit: 'dose' as const }
-            : {}
-
-      const event = createEvent({
-        deviceId: storeRef.current.deviceId,
-        householdId: storeRef.current.householdId,
-        kind,
-        ...payload,
-      })
-
-      commitMutation(createUpsertMutation(event))
-      setLastCreatedId(event.id)
-      setUndoAction({ label: `${kindName(kind)} 已添加`, type: 'create', event })
-    },
-    [commitMutation, doseAmount, milkAmountInput],
-  )
-
-  const openEventEditor = useCallback((eventId: string) => {
-    const event = storeRef.current.events.find((current) => current.id === eventId)
-    if (!event) {
-      return
-    }
-
-    setDraftAmount(String(eventDefaultAmount(event)))
-    setDraftNote(event.note ?? '')
-    setEditingEventId(eventId)
-  }, [])
-
-  const closeEditor = useCallback(() => {
-    setEditingEventId('')
-  }, [])
-
-  const deleteEvent = useCallback(
-    (event: BabyEvent) => {
-      commitMutation(
-        createDeleteMutation({
-          eventId: event.id,
-          householdId: event.householdId,
-        }),
-      )
-      setUndoAction({ label: `${kindName(event.kind)} 已删除`, type: 'delete', event })
-      setLastCreatedId('')
-      setEditingEventId('')
-    },
-    [commitMutation],
-  )
-
-  const deleteEventById = useCallback(
-    (eventId: string) => {
-      const event = storeRef.current.events.find((current) => current.id === eventId)
-      if (event) {
-        deleteEvent(event)
-      }
-    },
-    [deleteEvent],
-  )
-
-  const saveEditedEvent = useCallback(() => {
-    if (!editingEvent) {
-      return
-    }
-
-    const trimmedNote = draftNote.trim()
-    const updatedEvent: BabyEvent = {
-      ...editingEvent,
-      amount:
-        editingEvent.kind === 'poop'
-          ? undefined
-          : parsePositiveInt(draftAmount, eventDefaultAmount(editingEvent)),
-      unit:
-        editingEvent.kind === 'feeding'
-          ? 'ml'
-          : editingEvent.kind === 'probiotic'
-            ? 'dose'
-            : undefined,
-      note: trimmedNote || undefined,
-    }
-
-    commitMutation(createUpsertMutation(updatedEvent))
-    setUndoAction({
-      label: `${kindName(updatedEvent.kind)} 已更新`,
-      type: 'update',
-      event: updatedEvent,
-      previousEvent: editingEvent,
-    })
-    setLastCreatedId('')
-    setEditingEventId('')
-  }, [commitMutation, draftAmount, draftNote, editingEvent])
-
-  const undoLastAction = useCallback(() => {
-    if (!undoAction) {
-      return
-    }
-
-    if (undoAction.type === 'create') {
-      commitMutation(
-        createDeleteMutation({
-          eventId: undoAction.event.id,
-          householdId: undoAction.event.householdId,
-        }),
-      )
-      setLastCreatedId('')
-      setUndoAction(null)
-      return
-    }
-
-    if (undoAction.type === 'update') {
-      commitMutation(createUpsertMutation(undoAction.previousEvent))
-      setLastCreatedId('')
-      setUndoAction(null)
-      return
-    }
-
-    commitMutation(createUpsertMutation(undoAction.event))
-    setLastCreatedId(undoAction.event.id)
-    setUndoAction(null)
-  }, [commitMutation, undoAction])
-
-  const createHousehold = useCallback(async () => {
-    if (!hasSupabaseConfig) {
-      setFamilyNotice('还没有配置 Supabase URL 和 Anon Key。', 'error')
-      return
-    }
-
-    setFamilyNotice('')
-
-    try {
-      const membership = await createHouseholdMembership(
-        normalizeHouseholdName(householdNameDraft || store.householdName),
-      )
-      setHouseholdNameDraft(membership.householdName)
-      setInviteCodeDraft(membership.householdInviteCode)
-      setShowFamilyPanel(false)
-      setEditingEventId('')
-      setUndoAction(null)
-      setLastCreatedId('')
-      setFamilyPanelMode('create')
-      setFamilyNotice('已创建家庭，现在可以把链接发给家人一起记录。', 'success')
-      void syncNow(
-        'manual',
-        membership,
-        !isLocalHouseholdId(storeRef.current.householdId) &&
-          storeRef.current.householdId !== membership.householdId,
-      )
-    } catch (error) {
-      setFamilyNotice(getErrorMessage(error), 'error')
-    }
-  }, [householdNameDraft, setFamilyNotice, store.householdName, syncNow])
-
-  const joinHousehold = useCallback(async () => {
-    if (!hasSupabaseConfig) {
-      setFamilyNotice('还没有配置 Supabase URL 和 Anon Key。', 'error')
-      return
-    }
-
-    const normalizedInviteCode = normalizeInviteCode(inviteCodeDraft)
-    if (!normalizedInviteCode) {
-      setFamilyNotice('请先输入邀请码。', 'error')
-      return
-    }
-
-    setFamilyNotice('')
-
-    try {
-      const membership = await joinHouseholdMembership(normalizedInviteCode)
-      setHouseholdNameDraft(membership.householdName)
-      setInviteCodeDraft(membership.householdInviteCode)
-      setShowFamilyPanel(false)
-      setEditingEventId('')
-      setUndoAction(null)
-      setLastCreatedId('')
-      setFamilyPanelMode('join')
-      setFamilyNotice('已加入家庭，之后的记录会同步到同一个空间。', 'success')
-      void syncNow(
-        'manual',
-        membership,
-        !isLocalHouseholdId(storeRef.current.householdId) &&
-          storeRef.current.householdId !== membership.householdId,
-      )
-    } catch (error) {
-      setFamilyNotice(getErrorMessage(error), 'error')
-    }
-  }, [inviteCodeDraft, setFamilyNotice, syncNow])
-
-  const copyInviteCode = useCallback(async () => {
-    if (!store.householdInviteCode) {
-      setFamilyNotice('当前家庭还没有可复制的邀请码。', 'error')
-      return
-    }
-
-    if (typeof navigator.clipboard?.writeText !== 'function') {
-      setFamilyNotice('当前浏览器不支持复制，请手动抄一下邀请码。', 'error')
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(store.householdInviteCode)
-      setFamilyNotice('邀请码已复制。', 'success')
-    } catch {
-      setFamilyNotice('复制失败，请手动抄一下邀请码。', 'error')
-    }
-  }, [setFamilyNotice, store.householdInviteCode])
-
-  const shareInviteLink = useCallback(async () => {
-    if (!store.householdInviteCode) {
-      setFamilyNotice('当前家庭还没有可分享的邀请码。', 'error')
-      return
-    }
-
-    const inviteLink = buildInviteShareUrl(store.householdInviteCode)
-    const shareTitle = `${store.householdName} · 宝宝记录共享`
-    const shareText = `${store.householdName} 邀请你一起记录宝宝日常，打开链接后点加入即可。`
-
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: inviteLink,
-        })
-        setFamilyNotice('已打开系统分享。', 'success')
-        return
-      } catch (error) {
-        const isAbortError =
-          (error instanceof DOMException && error.name === 'AbortError') ||
-          (typeof error === 'object' &&
-            error !== null &&
-            'name' in error &&
-            (error as { name?: string }).name === 'AbortError')
-
-        if (isAbortError) {
-          return
-        }
-      }
-    }
-
-    if (typeof navigator.clipboard?.writeText !== 'function') {
-      setFamilyNotice('当前浏览器不支持系统分享，也无法复制链接。', 'error')
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(inviteLink)
-      setFamilyNotice('分享链接已复制，发给家人即可。', 'success')
-    } catch {
-      setFamilyNotice('复制分享链接失败，请稍后再试。', 'error')
-    }
-  }, [setFamilyNotice, store.householdInviteCode, store.householdName])
-
   const handleManualSync = useCallback(() => {
     void syncNow('manual')
   }, [syncNow])
 
   const handleInstallClick = useCallback(async () => {
-    setShowFamilyPanel(false)
-    setEditingEventId('')
+    familySharing.closeFamilyPanel()
+    composer.closeEditor()
 
     const result = await requestInstall()
 
@@ -435,86 +99,63 @@ function App() {
     }
 
     if (result === 'unavailable') {
-      setFamilyNotice('当前浏览器暂时没有可用安装入口，建议用 HTTPS 下的 Chrome 或 Edge 打开。', 'error')
+      familySharing.notifyFamily(
+        '当前浏览器暂时没有可用安装入口，建议用 HTTPS 下的 Chrome 或 Edge 打开。',
+        'error',
+      )
     }
-  }, [installGuideMode, requestInstall, setFamilyNotice])
-
-  const toggleFamilyPanel = useCallback(() => {
-    setEditingEventId('')
-    setShowInstallGuide(false)
-    setFamilyPanelMode(inviteCodeDraft ? 'join' : 'create')
-    setShowFamilyPanel((previous) => !previous)
-  }, [inviteCodeDraft])
-
-  const closeFamilyPanel = useCallback(() => {
-    setShowFamilyPanel(false)
-  }, [])
+  }, [composer, familySharing, installGuideMode, requestInstall])
 
   const closeInstallGuide = useCallback(() => {
     setShowInstallGuide(false)
   }, [])
 
   useEffect(() => {
-    const inviteCode = readInviteCodeFromUrl()
-    if (!inviteCode || typeof window === 'undefined') {
-      return
-    }
-
-    const url = new URL(window.location.href)
-    url.searchParams.delete('invite')
-    const nextSearch = url.searchParams.toString()
-    window.history.replaceState(
-      {},
-      '',
-      `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`,
-    )
-  }, [])
-
-  useEffect(() => {
-    persistStore(store)
+    storeRef.current = store
   }, [store])
 
   useEffect(() => {
-    if (!lastCreatedId) {
-      return
+    if (persistTimerRef.current !== null) {
+      window.clearTimeout(persistTimerRef.current)
     }
 
-    const timer = window.setTimeout(() => {
-      setLastCreatedId('')
-    }, 4000)
+    persistTimerRef.current = window.setTimeout(() => {
+      persistStore(storeRef.current)
+      persistTimerRef.current = null
+    }, STORE_PERSIST_DEBOUNCE_MS)
 
     return () => {
-      window.clearTimeout(timer)
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current)
+      }
     }
-  }, [lastCreatedId])
+  }, [store])
 
   useEffect(() => {
-    if (!familyMessage) {
-      return
+    const flushPersist = () => {
+      if (persistTimerRef.current !== null) {
+        window.clearTimeout(persistTimerRef.current)
+        persistTimerRef.current = null
+      }
+
+      persistStore(storeRef.current)
     }
 
-    const timer = window.setTimeout(() => {
-      setFamilyMessage('')
-    }, 4800)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushPersist()
+      }
+    }
+
+    window.addEventListener('pagehide', flushPersist)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      window.clearTimeout(timer)
+      window.removeEventListener('pagehide', flushPersist)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      flushPersist()
     }
-  }, [familyMessage])
-
-  useEffect(() => {
-    if (!undoAction) {
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      setUndoAction(null)
-    }, 6000)
-
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [undoAction])
+  }, [])
 
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]')
@@ -573,8 +214,8 @@ function App() {
         <StatusHeader
           currentHouseholdInviteCode={store.householdInviteCode}
           currentHouseholdName={store.householdName}
-          familyMessage={familyMessage}
-          familyMessageTone={familyMessageTone}
+          familyMessage={familySharing.familyMessage}
+          familyMessageTone={familySharing.familyMessageTone}
           hasJoinedHousehold={hasJoinedHousehold}
           installButtonTone={installEntryTone}
           lastSyncedAt={store.lastSyncedAt}
@@ -584,14 +225,14 @@ function App() {
             void handleInstallClick()
           }}
           onShareInviteLink={() => {
-            void shareInviteLink()
+            void familySharing.shareInviteLink()
           }}
           onSyncNow={handleManualSync}
-          onToggleFamilyPanel={toggleFamilyPanel}
+          onToggleFamilyPanel={familySharing.toggleFamilyPanel}
           onUpdateServiceWorker={() => {
             void updateServiceWorker(true)
           }}
-          showFamilyPanel={showFamilyPanel}
+          showFamilyPanel={familySharing.showFamilyPanel}
           showInstallEntry={showInstallEntry}
           syncEnabled={hasSupabaseConfig}
           syncMessage={syncMessage}
@@ -623,87 +264,108 @@ function App() {
           <RecentEventList
             events={recentEvents}
             isBooting={isBooting}
-            lastCreatedId={lastCreatedId}
-            onDeleteEvent={deleteEventById}
-            onEditEvent={openEventEditor}
+            lastCreatedId={composer.lastCreatedId}
+            onDeleteEvent={composer.deleteEventById}
+            onEditEvent={composer.openEventEditor}
           />
         ) : (
-          <TrendOverview
-            cards={trendCards}
-            latestItems={trendOverviewData.latestItems}
-            recentItems={trendOverviewData.recentItems}
-          />
+          <Suspense
+            fallback={
+              <section className="surface px-3 py-3 text-[0.8rem] text-muted">
+                加载趋势中…
+              </section>
+            }
+          >
+            <TrendOverview
+              cards={trendCards}
+              latestItems={trendOverviewData.latestItems}
+              recentItems={trendOverviewData.recentItems}
+            />
+          </Suspense>
         )}
       </main>
 
-      <InstallGuideSheet
-        mode={installGuideMode}
-        onClose={closeInstallGuide}
-        show={showInstallGuide && !isInstalled}
-      />
+      {showInstallGuide && !isInstalled && (
+        <Suspense fallback={null}>
+          <InstallGuideSheet
+            mode={installGuideMode}
+            onClose={closeInstallGuide}
+            show={showInstallGuide}
+          />
+        </Suspense>
+      )}
 
-      <FamilyPanelSheet
-        currentHouseholdInviteCode={store.householdInviteCode}
-        currentHouseholdName={store.householdName}
-        familyMessage={familyMessage}
-        familyMessageTone={familyMessageTone}
-        hasJoinedHousehold={hasJoinedHousehold}
-        householdNameDraft={householdNameDraft}
-        inviteCodeDraft={inviteCodeDraft}
-        mode={familyPanelMode}
-        onClose={closeFamilyPanel}
-        onCopyInviteCode={() => {
-          void copyInviteCode()
-        }}
-        onCreateHousehold={() => {
-          void createHousehold()
-        }}
-        onHouseholdNameDraftChange={handleHouseholdNameDraftChange}
-        onInviteCodeDraftChange={handleInviteCodeDraftChange}
-        onJoinHousehold={() => {
-          void joinHousehold()
-        }}
-        onModeChange={handleFamilyPanelModeChange}
-        onShareInviteLink={() => {
-          void shareInviteLink()
-        }}
-        show={showFamilyPanel}
-        syncEnabled={hasSupabaseConfig}
-      />
+      {familySharing.showFamilyPanel && (
+        <Suspense fallback={null}>
+          <FamilyPanelSheet
+            currentHouseholdInviteCode={store.householdInviteCode}
+            currentHouseholdName={store.householdName}
+            familyMessage={familySharing.familyMessage}
+            familyMessageTone={familySharing.familyMessageTone}
+            hasJoinedHousehold={hasJoinedHousehold}
+            householdNameDraft={familySharing.householdNameDraft}
+            inviteCodeDraft={familySharing.inviteCodeDraft}
+            mode={familySharing.familyPanelMode}
+            onClose={familySharing.closeFamilyPanel}
+            onCopyInviteCode={() => {
+              void familySharing.copyInviteCode()
+            }}
+            onCreateHousehold={() => {
+              void familySharing.createHousehold()
+            }}
+            onHouseholdNameDraftChange={familySharing.handleHouseholdNameDraftChange}
+            onInviteCodeDraftChange={familySharing.handleInviteCodeDraftChange}
+            onJoinHousehold={() => {
+              void familySharing.joinHousehold()
+            }}
+            onModeChange={familySharing.handleFamilyPanelModeChange}
+            onShareInviteLink={() => {
+              void familySharing.shareInviteLink()
+            }}
+            show={familySharing.showFamilyPanel}
+            syncEnabled={hasSupabaseConfig}
+          />
+        </Suspense>
+      )}
 
-      {undoAction && (
+      {composer.undoAction && (
         <UndoToast
           bottomOffset={composerHeight + 12}
-          label={undoAction.label}
-          onUndo={undoLastAction}
+          label={composer.undoAction.label}
+          onUndo={composer.undoLastAction}
+          showUndoAction={composer.undoAction.type === 'delete'}
         />
       )}
 
       <QuickActionBar
         ref={composerRef}
-        activeKind={composerKind}
-        doseAmount={doseAmount}
-        milkAmountInput={milkAmountInput}
-        onActiveKindChange={setComposerKind}
-        onAddEvent={addEvent}
-        onDoseAmountChange={setDoseAmount}
-        onMilkAmountInputChange={setMilkAmountInput}
+        activeKind={composer.composerKind}
+        doseAmount={composer.doseAmount}
+        milkAmountInput={composer.milkAmountInput}
+        onActiveKindChange={composer.setComposerKind}
+        onAddEvent={composer.addEvent}
+        onDoseAmountChange={composer.setDoseAmount}
+        onMilkAmountInputChange={composer.setMilkAmountInput}
       />
 
-      <EventEditorSheet
-        draftAmount={draftAmount}
-        draftNote={draftNote}
-        event={editingEvent}
-        onAmountChange={setDraftAmount}
-        onClose={closeEditor}
-        onDelete={() => {
-          if (editingEvent) {
-            deleteEvent(editingEvent)
-          }
-        }}
-        onNoteChange={setDraftNote}
-        onSave={saveEditedEvent}
-      />
+      {composer.editingEvent && (
+        <Suspense fallback={null}>
+          <EventEditorSheet
+            draftAmount={composer.draftAmount}
+            draftNote={composer.draftNote}
+            event={composer.editingEvent}
+            onAmountChange={composer.setDraftAmount}
+            onClose={composer.closeEditor}
+            onDelete={() => {
+              if (composer.editingEvent) {
+                composer.deleteEvent(composer.editingEvent)
+              }
+            }}
+            onNoteChange={composer.setDraftNote}
+            onSave={composer.saveEditedEvent}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

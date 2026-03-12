@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { squashMutations } from './storage'
 import type { BabyEvent, EventMutation, HouseholdMembership } from './types'
 
@@ -25,16 +25,39 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const hasSupabaseConfig = Boolean(url && anonKey)
 
-export const supabaseClient =
-  url && anonKey
-    ? createClient(url, anonKey, {
+let supabaseClient: SupabaseClient | null = null
+let supabaseClientPromise: Promise<SupabaseClient> | null = null
+
+async function getSupabaseClient() {
+  if (!hasSupabaseConfig) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  if (supabaseClient) {
+    return supabaseClient
+  }
+
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = import('@supabase/supabase-js').then(({ createClient }) => {
+      const createdClient = createClient(url as string, anonKey as string, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: true,
         },
       })
-    : null
+
+      supabaseClient = createdClient
+      return createdClient
+    })
+  }
+
+  return supabaseClientPromise
+}
+
+function getCachedSupabaseClient() {
+  return supabaseClient
+}
 
 function toRow(event: BabyEvent): BabyEventRow {
   return {
@@ -73,11 +96,9 @@ function toMembership(row: HouseholdMembershipRow): HouseholdMembership {
 }
 
 export async function ensureSupabaseSession() {
-  if (!supabaseClient) {
-    throw new Error('Supabase is not configured.')
-  }
+  const client = await getSupabaseClient()
 
-  const sessionResult = await supabaseClient.auth.getSession()
+  const sessionResult = await client.auth.getSession()
   if (sessionResult.error) {
     throw sessionResult.error
   }
@@ -87,7 +108,7 @@ export async function ensureSupabaseSession() {
     return currentUser.id
   }
 
-  const anonymousSignIn = await supabaseClient.auth.signInAnonymously()
+  const anonymousSignIn = await client.auth.signInAnonymously()
   if (anonymousSignIn.error) {
     throw anonymousSignIn.error
   }
@@ -101,12 +122,13 @@ export async function ensureSupabaseSession() {
 }
 
 export async function fetchCurrentHouseholdMembership() {
-  if (!supabaseClient) {
+  if (!hasSupabaseConfig) {
     return null as HouseholdMembership | null
   }
 
   await ensureSupabaseSession()
-  const result = await supabaseClient.rpc('get_my_household').maybeSingle()
+  const client = await getSupabaseClient()
+  const result = await client.rpc('get_my_household').maybeSingle()
 
   if (result.error) {
     throw result.error
@@ -119,12 +141,9 @@ export async function fetchCurrentHouseholdMembership() {
 }
 
 export async function createHouseholdMembership(householdName: string) {
-  if (!supabaseClient) {
-    throw new Error('Supabase is not configured.')
-  }
-
   await ensureSupabaseSession()
-  const result = await supabaseClient
+  const client = await getSupabaseClient()
+  const result = await client
     .rpc('create_household_with_profile', { p_display_name: householdName })
     .single()
 
@@ -136,12 +155,9 @@ export async function createHouseholdMembership(householdName: string) {
 }
 
 export async function joinHouseholdMembership(inviteCode: string) {
-  if (!supabaseClient) {
-    throw new Error('Supabase is not configured.')
-  }
-
   await ensureSupabaseSession()
-  const result = await supabaseClient
+  const client = await getSupabaseClient()
+  const result = await client
     .rpc('join_household_with_invite', { p_invite_code: inviteCode })
     .single()
 
@@ -153,15 +169,16 @@ export async function joinHouseholdMembership(inviteCode: string) {
 }
 
 export async function pushPendingMutations(mutations: EventMutation[]) {
-  if (!supabaseClient || mutations.length === 0) {
+  if (!hasSupabaseConfig || mutations.length === 0) {
     return
   }
 
   await ensureSupabaseSession()
+  const client = await getSupabaseClient()
   const { upserts, deletes } = squashMutations(mutations)
 
   if (upserts.length > 0) {
-    const upsertResult = await supabaseClient
+    const upsertResult = await client
       .from('baby_events')
       .upsert(upserts.map(toRow), { onConflict: 'id' })
 
@@ -171,7 +188,7 @@ export async function pushPendingMutations(mutations: EventMutation[]) {
   }
 
   if (deletes.length > 0) {
-    const deleteResult = await supabaseClient.from('baby_events').delete().in('id', deletes)
+    const deleteResult = await client.from('baby_events').delete().in('id', deletes)
 
     if (deleteResult.error) {
       throw deleteResult.error
@@ -180,12 +197,13 @@ export async function pushPendingMutations(mutations: EventMutation[]) {
 }
 
 export async function fetchHouseholdEvents(householdId: string, limit = 240) {
-  if (!supabaseClient) {
+  if (!hasSupabaseConfig) {
     return [] as BabyEvent[]
   }
 
   await ensureSupabaseSession()
-  const result = await supabaseClient
+  const client = await getSupabaseClient()
+  const result = await client
     .from('baby_events')
     .select(
       'id, household_id, kind, event_at, created_at, amount, unit, note, created_by_device_id',
@@ -205,11 +223,16 @@ export function subscribeHouseholdEvents(
   householdId: string,
   onChange: () => void,
 ): (() => void) | null {
-  if (!supabaseClient) {
+  if (!hasSupabaseConfig) {
     return null
   }
 
-  const channel = supabaseClient
+  const client = getCachedSupabaseClient()
+  if (!client) {
+    return null
+  }
+
+  const channel = client
     .channel(`baby-events-${householdId}`)
     .on(
       'postgres_changes',
@@ -226,6 +249,6 @@ export function subscribeHouseholdEvents(
     .subscribe()
 
   return () => {
-    void supabaseClient.removeChannel(channel)
+    void client.removeChannel(channel)
   }
 }

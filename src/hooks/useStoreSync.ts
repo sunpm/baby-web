@@ -204,7 +204,13 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
       return
     }
 
-    void syncNow('record')
+    const timer = window.setTimeout(() => {
+      void syncNow('record')
+    }, 480)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
   }, [isBooting, store.pendingMutations.length, syncNow])
 
   useEffect(() => {
@@ -213,8 +219,11 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible' || !navigator.onLine) {
+        return
+      }
       void syncNow('manual')
-    }, 60_000)
+    }, 90_000)
 
     return () => {
       window.clearInterval(timer)
@@ -276,6 +285,7 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
 
     let unsubscribe: (() => void) | null = null
     let cancelled = false
+    let realtimeTimer: number | null = null
 
     void ensureSupabaseSession()
       .then(() => {
@@ -284,7 +294,14 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
         }
 
         unsubscribe = subscribeHouseholdEvents(store.householdId, () => {
-          void syncNow('realtime')
+          if (realtimeTimer !== null) {
+            window.clearTimeout(realtimeTimer)
+          }
+
+          realtimeTimer = window.setTimeout(() => {
+            realtimeTimer = null
+            void syncNow('realtime')
+          }, 320)
         })
       })
       .catch((error) => {
@@ -298,6 +315,9 @@ export function useStoreSync({ setStore, store }: UseStoreSyncOptions) {
 
     return () => {
       cancelled = true
+      if (realtimeTimer !== null) {
+        window.clearTimeout(realtimeTimer)
+      }
       unsubscribe?.()
     }
   }, [store.householdId, syncNow])
