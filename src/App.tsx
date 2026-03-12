@@ -158,6 +158,12 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('app-mounted'))
+    }
+  }, [])
+
+  useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]')
     if (!meta || typeof window.matchMedia !== 'function') {
       return
