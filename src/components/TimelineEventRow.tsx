@@ -1,5 +1,5 @@
 import { CheckCircle, Trash } from '@phosphor-icons/react'
-import { useRef, useState } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import {
   formatEventAmount,
   kindClassName,
@@ -20,7 +20,7 @@ interface TimelineEventRowProps {
   onSetSwipeOpen: (eventId: string | null) => void
 }
 
-export function TimelineEventRow({
+function TimelineEventRowImpl({
   event,
   isJustCreated,
   isSwipeOpen,
@@ -37,6 +37,9 @@ export function TimelineEventRow({
 
   const displayOffset = isDragging ? dragOffset : isSwipeOpen ? -ACTION_WIDTH : 0
   const revealOpacity = Math.max(Math.abs(displayOffset) / ACTION_WIDTH, isSwipeOpen ? 1 : 0)
+  const amountLabel = useMemo(() => formatEventAmount(event), [event])
+  const timeLabel = useMemo(() => shortTime(event.eventAt), [event.eventAt])
+  const relativeTimeLabel = useMemo(() => relativeMinutes(event.eventAt), [event.eventAt])
 
   const handlePointerDown = (clientX: number) => {
     draggingRef.current = true
@@ -134,7 +137,7 @@ export function TimelineEventRow({
                 {kindName(event.kind)}
               </span>
               <p className="truncate text-[0.88rem] font-medium text-slate-700 dark:text-slate-300">
-                {formatEventAmount(event)}
+                {amountLabel}
                 {event.note ? (
                   <span className="font-normal text-slate-500"> · {event.note}</span>
                 ) : (
@@ -152,15 +155,28 @@ export function TimelineEventRow({
 
           <div className="shrink-0 text-right">
             <div className="flex items-center justify-end gap-2">
-              <span className="text-[0.8rem] font-medium tabular-nums text-slate-500">{shortTime(event.eventAt)}</span>
+              <span className="text-[0.8rem] font-medium tabular-nums text-slate-500">
+                {timeLabel}
+              </span>
               <span className="rounded-md ring-1 ring-[var(--surface-border)] bg-black/[0.02] dark:bg-white/[0.04] px-1.5 py-0.5 text-[0.6rem] font-medium tracking-wide text-muted">
                 编辑
               </span>
             </div>
-            <p className="mt-1.5 text-[0.7rem] text-muted">{relativeMinutes(event.eventAt)}</p>
+            <p className="mt-1.5 text-[0.7rem] text-muted">{relativeTimeLabel}</p>
           </div>
         </div>
       </div>
     </li>
   )
 }
+
+export const TimelineEventRow = memo(
+  TimelineEventRowImpl,
+  (prevProps, nextProps) =>
+    prevProps.event === nextProps.event &&
+    prevProps.isJustCreated === nextProps.isJustCreated &&
+    prevProps.isSwipeOpen === nextProps.isSwipeOpen &&
+    prevProps.onDeleteEvent === nextProps.onDeleteEvent &&
+    prevProps.onEditEvent === nextProps.onEditEvent &&
+    prevProps.onSetSwipeOpen === nextProps.onSetSwipeOpen,
+)

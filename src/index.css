@@ -28,6 +28,11 @@
   --surface-border-strong: rgba(148, 163, 184, 0.2);
   --surface-inner: rgba(255, 255, 255, 0.9);
   --surface-shadow: rgba(15, 23, 42, 0.04);
+  --surface-blur: 16px;
+  --row-blur: 16px;
+  --sheet-blur: 20px;
+  --floating-blur: 20px;
+  --sticky-blur: 12px;
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
@@ -52,11 +57,36 @@
     --surface-border-strong: rgba(82, 82, 91, 0.6);
     --surface-inner: rgba(255, 255, 255, 0.03);
     --surface-shadow: rgba(0, 0, 0, 0.3);
+    --surface-blur: 16px;
+    --row-blur: 16px;
+    --sheet-blur: 20px;
+    --floating-blur: 20px;
+    --sticky-blur: 12px;
     --text-primary: #fafafa;
     --text-secondary: #a1a1aa;
     --text-muted: #71717a;
     --delete-bg: rgba(127, 29, 29, 0.5);
     --danger-solid: #f87171;
+  }
+}
+
+@media (max-width: 390px) {
+  :root {
+    --surface-blur: 12px;
+    --row-blur: 10px;
+    --sheet-blur: 14px;
+    --floating-blur: 14px;
+    --sticky-blur: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --surface-blur: 0px;
+    --row-blur: 0px;
+    --sheet-blur: 0px;
+    --floating-blur: 0px;
+    --sticky-blur: 0px;
   }
 }
 
@@ -121,7 +151,8 @@ select {
   .surface {
     border: 1px solid var(--surface-border);
     background: var(--surface-bg);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--surface-blur));
+    -webkit-backdrop-filter: blur(var(--surface-blur));
     border-radius: 1.5rem;
     box-shadow:
       inset 0 1px 0 var(--surface-inner),
@@ -131,7 +162,8 @@ select {
   .row-surface {
     border: 1px solid var(--surface-border);
     background: var(--row-bg);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--row-blur));
+    -webkit-backdrop-filter: blur(var(--row-blur));
     border-radius: 1rem;
     box-shadow:
       inset 0 1px 0 var(--surface-inner),
@@ -141,7 +173,8 @@ select {
   .sheet-surface {
     border: 1px solid var(--surface-border-strong);
     background: var(--sheet-bg);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(var(--sheet-blur));
+    -webkit-backdrop-filter: blur(var(--sheet-blur));
     border-top-left-radius: 2rem;
     border-top-right-radius: 2rem;
     box-shadow:
@@ -153,7 +186,8 @@ select {
     border-top: 1px solid var(--surface-border-strong);
     background: var(--floating-bg);
     box-shadow: 0 -15px 40px -15px var(--surface-shadow);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(var(--floating-blur));
+    -webkit-backdrop-filter: blur(var(--floating-blur));
   }
 
   .sticky-shell {
@@ -163,7 +197,8 @@ select {
       var(--sticky-bg) 84%,
       var(--sticky-fade) 100%
     );
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(var(--sticky-blur));
+    -webkit-backdrop-filter: blur(var(--sticky-blur));
   }
 
   .control-surface {
@@ -205,5 +240,12 @@ select {
   .action-tap:active {
     transform: translateY(1px) scale(0.98);
     filter: brightness(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-tap {
+    transition: none;
+    will-change: auto;
   }
 }

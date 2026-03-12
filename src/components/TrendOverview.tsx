@@ -1,4 +1,5 @@
 import { ChartLineUp, ClockCounterClockwise } from '@phosphor-icons/react'
+import { memo, useMemo } from 'react'
 import type { TrendCardData, TrendDigestItem, TrendLatestItem } from '../lib/insights'
 
 interface TrendOverviewProps {
@@ -7,8 +8,15 @@ interface TrendOverviewProps {
   recentItems: TrendDigestItem[]
 }
 
-export function TrendOverview({ cards, latestItems, recentItems }: TrendOverviewProps) {
-  const isEmpty = cards.every((card) => card.points.every((point) => point.value === 0))
+export const TrendOverview = memo(function TrendOverview({
+  cards,
+  latestItems,
+  recentItems,
+}: TrendOverviewProps) {
+  const isEmpty = useMemo(
+    () => cards.every((card) => card.points.every((point) => point.value === 0)),
+    [cards],
+  )
 
   return (
     <section id="panel-trends" role="tabpanel" aria-labelledby="tab-trends" className="mt-2.5 pb-1">
@@ -117,17 +125,20 @@ export function TrendOverview({ cards, latestItems, recentItems }: TrendOverview
       )}
     </section>
   )
-}
+})
 
-function TrendSparkline({ card }: { card: TrendCardData }) {
+const TrendSparkline = memo(function TrendSparkline({ card }: { card: TrendCardData }) {
   const width = 280
   const height = 64
   const paddingX = width / (card.points.length * 2)
   const top = 10
   const bottom = 10
-  const points = normalizePoints(card.points, width, height, paddingX, top, bottom)
-  const linePath = buildLinePath(points)
-  const areaPath = buildAreaPath(points, height - bottom)
+  const points = useMemo(
+    () => normalizePoints(card.points, width, height, paddingX, top, bottom),
+    [bottom, card.points, height, paddingX, top, width],
+  )
+  const linePath = useMemo(() => buildLinePath(points), [points])
+  const areaPath = useMemo(() => buildAreaPath(points, height - bottom), [bottom, height, points])
 
   return (
     <div className={`mt-2.5 ${card.toneClass}`}>
@@ -169,7 +180,7 @@ function TrendSparkline({ card }: { card: TrendCardData }) {
       </svg>
     </div>
   )
-}
+})
 
 function normalizePoints(
   points: TrendCardData['points'],

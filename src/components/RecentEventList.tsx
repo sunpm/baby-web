@@ -1,5 +1,5 @@
 import { Baby, ListHeart } from '@phosphor-icons/react'
-import { useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { dateGroupKey, dateGroupLabel } from '../lib/ui'
 import type { BabyEvent } from '../lib/types'
 import { TimelineEventRow } from './TimelineEventRow'
@@ -18,6 +18,81 @@ interface EventGroup {
   events: BabyEvent[]
 }
 
+interface EventGroupSectionProps {
+  group: EventGroup
+  lastCreatedId: string
+  onDeleteEvent: (eventId: string) => void
+  onEditEvent: (eventId: string) => void
+  onSetSwipeOpen: (eventId: string | null) => void
+  swipeOpenEventId: string | null
+}
+
+function isIdInsideGroup(group: EventGroup, eventId: string | null) {
+  if (!eventId) {
+    return false
+  }
+
+  return group.events.some((event) => event.id === eventId)
+}
+
+function getGroupSwipeOpenId(group: EventGroup, eventId: string | null) {
+  return isIdInsideGroup(group, eventId) ? eventId : null
+}
+
+const EventGroupSection = memo(
+  function EventGroupSection({
+    group,
+    lastCreatedId,
+    onDeleteEvent,
+    onEditEvent,
+    onSetSwipeOpen,
+    swipeOpenEventId,
+  }: EventGroupSectionProps) {
+    return (
+      <section className="pb-1">
+        <div className="mb-2.5 mt-3 flex items-center gap-3 px-1">
+          <span className="text-[0.65rem] font-medium uppercase tracking-[0.15em] text-muted">
+            {group.label}
+          </span>
+          <div className="h-px flex-1 bg-gradient-to-r from-[var(--surface-border)] to-transparent" />
+        </div>
+        <ul className="space-y-2">
+          {group.events.map((event) => (
+            <TimelineEventRow
+              key={event.id}
+              event={event}
+              isJustCreated={event.id === lastCreatedId}
+              isSwipeOpen={swipeOpenEventId === event.id}
+              onDeleteEvent={onDeleteEvent}
+              onEditEvent={onEditEvent}
+              onSetSwipeOpen={onSetSwipeOpen}
+            />
+          ))}
+        </ul>
+      </section>
+    )
+  },
+  (prevProps, nextProps) => {
+    if (
+      prevProps.group !== nextProps.group ||
+      prevProps.onDeleteEvent !== nextProps.onDeleteEvent ||
+      prevProps.onEditEvent !== nextProps.onEditEvent ||
+      prevProps.onSetSwipeOpen !== nextProps.onSetSwipeOpen
+    ) {
+      return false
+    }
+
+    const swipeOpenStable =
+      getGroupSwipeOpenId(prevProps.group, prevProps.swipeOpenEventId) ===
+      getGroupSwipeOpenId(nextProps.group, nextProps.swipeOpenEventId)
+    const lastCreatedStable =
+      getGroupSwipeOpenId(prevProps.group, prevProps.lastCreatedId) ===
+      getGroupSwipeOpenId(nextProps.group, nextProps.lastCreatedId)
+
+    return swipeOpenStable && lastCreatedStable
+  },
+)
+
 export function RecentEventList({
   events,
   isBooting,
@@ -26,6 +101,26 @@ export function RecentEventList({
   onEditEvent,
 }: RecentEventListProps) {
   const [swipeOpenEventId, setSwipeOpenEventId] = useState<string | null>(null)
+  const activeSwipeOpenEventId = useMemo(
+    () => (events.some((event) => event.id === swipeOpenEventId) ? swipeOpenEventId : null),
+    [events, swipeOpenEventId],
+  )
+
+  const handleDeleteEvent = useCallback(
+    (eventId: string) => {
+      setSwipeOpenEventId(null)
+      onDeleteEvent(eventId)
+    },
+    [onDeleteEvent],
+  )
+
+  const handleEditEvent = useCallback(
+    (eventId: string) => {
+      setSwipeOpenEventId(null)
+      onEditEvent(eventId)
+    },
+    [onEditEvent],
+  )
 
   const groups = useMemo<EventGroup[]>(() => {
     const map = new Map<string, EventGroup>()
@@ -84,33 +179,15 @@ export function RecentEventList({
       {!isBooting && groups.length > 0 && (
         <div className="space-y-3">
           {groups.map((group) => (
-            <section key={group.dateKey} className="pb-1">
-              <div className="mb-2.5 mt-3 flex items-center gap-3 px-1">
-                <span className="text-[0.65rem] font-medium uppercase tracking-[0.15em] text-muted">
-                  {group.label}
-                </span>
-                <div className="h-px flex-1 bg-gradient-to-r from-[var(--surface-border)] to-transparent" />
-              </div>
-              <ul className="space-y-2">
-                {group.events.map((event) => (
-                  <TimelineEventRow
-                    key={event.id}
-                    event={event}
-                    isJustCreated={event.id === lastCreatedId}
-                    isSwipeOpen={swipeOpenEventId === event.id}
-                    onDeleteEvent={(eventId) => {
-                      setSwipeOpenEventId(null)
-                      onDeleteEvent(eventId)
-                    }}
-                    onEditEvent={(eventId) => {
-                      setSwipeOpenEventId(null)
-                      onEditEvent(eventId)
-                    }}
-                    onSetSwipeOpen={setSwipeOpenEventId}
-                  />
-                ))}
-              </ul>
-            </section>
+            <EventGroupSection
+              key={group.dateKey}
+              group={group}
+              lastCreatedId={lastCreatedId}
+              onDeleteEvent={handleDeleteEvent}
+              onEditEvent={handleEditEvent}
+              onSetSwipeOpen={setSwipeOpenEventId}
+              swipeOpenEventId={activeSwipeOpenEventId}
+            />
           ))}
         </div>
       )}
