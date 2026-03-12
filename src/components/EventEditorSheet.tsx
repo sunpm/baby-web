@@ -1,4 +1,4 @@
-import { kindName, parsePositiveInt, shortTime } from '../lib/ui'
+import { kindName, parsePositiveInt, shortTime, SUPPLEMENT_PRESETS, type SupplementPreset } from '../lib/ui'
 import type { BabyEvent } from '../lib/types'
 
 interface EventEditorSheetProps {
@@ -10,6 +10,8 @@ interface EventEditorSheetProps {
   onDelete: () => void
   onNoteChange: (value: string) => void
   onSave: () => void
+  onSupplementPresetChange: (value: SupplementPreset) => void
+  supplementPreset: SupplementPreset
 }
 
 export function EventEditorSheet({
@@ -21,17 +23,23 @@ export function EventEditorSheet({
   onDelete,
   onNoteChange,
   onSave,
+  onSupplementPresetChange,
+  supplementPreset,
 }: EventEditorSheetProps) {
   if (!event) {
     return null
   }
 
-  const showAmount = event.kind === 'feeding'
+  const isFeeding = event.kind === 'feeding'
+  const isSupplement = event.kind === 'probiotic'
+  const showAmount = isFeeding
+  const showNote = !isSupplement
   const unitLabel = 'ml'
   const amountPlaceholder = String(event.amount ?? 90)
   const previewAmount = showAmount
     ? `${parsePositiveInt(draftAmount, Number(amountPlaceholder))} ${unitLabel}`
     : '已记录'
+  const previewLabel = isSupplement ? supplementPreset : previewAmount
 
   return (
     <div className="fixed inset-0 z-30 bg-slate-950/36 backdrop-blur-sm dark:bg-slate-950/72">
@@ -79,25 +87,54 @@ export function EventEditorSheet({
             </label>
           )}
 
-          <label className="block">
-            <span className="mb-1.5 block text-[0.68rem] uppercase tracking-[0.14em] text-muted">
-              备注
-            </span>
-            <textarea
-              value={draftNote}
-              onChange={(eventInput) => onNoteChange(eventInput.target.value)}
-              rows={2}
-              placeholder="补充一点说明"
-              className="control-surface w-full rounded-lg px-3 py-2.5 text-[0.84rem] text-primary outline-none placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
-            />
-          </label>
+          {isSupplement && (
+            <div>
+              <span className="mb-1.5 block text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+                补充类型
+              </span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {SUPPLEMENT_PRESETS.map((value) => {
+                  const isActive = supplementPreset === value
+
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => onSupplementPresetChange(value)}
+                      className={`action-tap h-9 rounded-lg border text-[0.8rem] font-medium ${isActive
+                        ? 'border-cyan-400/45 bg-cyan-300/16 text-cyan-700 shadow-[0_3px_10px_rgba(14,165,233,0.1)] dark:text-cyan-200'
+                        : 'border-[var(--surface-border)] bg-[var(--control-bg)] text-secondary shadow-[0_2px_8px_-2px_rgba(15,23,42,0.02)]'
+                        }`}
+                    >
+                      {value}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {showNote && (
+            <label className="block">
+              <span className="mb-1.5 block text-[0.68rem] uppercase tracking-[0.14em] text-muted">
+                备注
+              </span>
+              <textarea
+                value={draftNote}
+                onChange={(eventInput) => onNoteChange(eventInput.target.value)}
+                rows={2}
+                placeholder="补充一点说明"
+                className="control-surface w-full rounded-lg px-3 py-2.5 text-[0.84rem] text-primary outline-none placeholder:text-[color:var(--text-muted)] focus:border-emerald-400"
+              />
+            </label>
+          )}
         </div>
 
         <div className="mt-3.5 rounded-xl border border-[var(--surface-border)] bg-[var(--control-bg)] px-3 py-2.5">
           <p className="text-[0.68rem] uppercase tracking-[0.14em] text-muted">保存后预览</p>
           <p className="mt-1.5 text-[0.84rem] text-secondary">
-            {previewAmount}
-            {draftNote.trim() ? ` · ${draftNote.trim()}` : ''}
+            {previewLabel}
+            {showNote && draftNote.trim() ? ` · ${draftNote.trim()}` : ''}
           </p>
         </div>
 

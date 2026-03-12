@@ -15,7 +15,6 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'icons/baby-log-icon.svg',
         'icons/baby-log-icon-192.png',
         'icons/baby-log-icon-512.png',
         'icons/apple-touch-icon-180.png',

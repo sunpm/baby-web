@@ -403,6 +403,8 @@ function App() {
             }}
             onNoteChange={composer.setDraftNote}
             onSave={composer.saveEditedEvent}
+            onSupplementPresetChange={composer.setSupplementPreset}
+            supplementPreset={composer.supplementPreset}
           />
         </Suspense>
       )}

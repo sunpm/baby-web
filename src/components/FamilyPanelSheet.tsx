@@ -56,10 +56,10 @@ export function FamilyPanelSheet({
 
   const familyMessageClass =
     familyMessageTone === 'error'
-      ? 'border-red-500/35 bg-red-500/10 text-red-700 dark:text-red-100'
+      ? 'border-red-500/45 bg-red-500/14 text-red-800 ring-red-500/25 shadow-[0_8px_20px_-10px_rgba(239,68,68,0.36)] dark:text-red-100'
       : familyMessageTone === 'success'
-        ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-100'
-        : 'border-[var(--surface-border-strong)] bg-[var(--control-bg)] text-secondary'
+        ? 'border-emerald-500/45 bg-emerald-500/14 text-emerald-800 ring-emerald-500/25 shadow-[0_8px_20px_-10px_rgba(16,185,129,0.34)] dark:text-emerald-100'
+        : 'border-[var(--surface-border-strong)] bg-[var(--surface-bg)] text-primary ring-[var(--surface-border)] shadow-[0_8px_20px_-10px_rgba(15,23,42,0.18)]'
 
   const FamilyMessageIcon =
     familyMessageTone === 'error'
@@ -149,9 +149,9 @@ export function FamilyPanelSheet({
 
         {familyMessage && (
           <div
-            className={`mt-3 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[0.78rem] ${familyMessageClass}`}
+            className={`mt-3 flex items-center gap-2 rounded-lg border border-l-[3px] px-2.5 py-1.5 text-[0.78rem] font-medium ring-1 ${familyMessageClass}`}
           >
-            <FamilyMessageIcon size={14} />
+            <FamilyMessageIcon size={14} weight="fill" />
             {familyMessage}
           </div>
         )}

@@ -81,9 +81,7 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
 
     if (event.kind === 'probiotic') {
       const matchedPreset = SUPPLEMENT_PRESETS.find((preset) => preset === event.note)
-      if (matchedPreset) {
-        setSupplementPreset(matchedPreset)
-      }
+      setSupplementPreset(matchedPreset ?? SUPPLEMENT_PRESETS[0])
     }
 
     setDraftAmount(event.kind === 'feeding' ? String(eventDefaultAmount(event)) : '')
@@ -131,6 +129,8 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     }
 
     const trimmedNote = draftNote.trim()
+    const nextNote =
+      editingEvent.kind === 'probiotic' ? supplementPreset : trimmedNote || undefined
     const updatedEvent: BabyEvent = {
       ...editingEvent,
       amount:
@@ -138,7 +138,7 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
           ? parsePositiveInt(draftAmount, eventDefaultAmount(editingEvent))
           : undefined,
       unit: editingEvent.kind === 'feeding' ? 'ml' : undefined,
-      note: trimmedNote || undefined,
+      note: nextNote,
     }
 
     commitMutation(createUpsertMutation(updatedEvent))
@@ -150,7 +150,7 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     })
     setLastCreatedId('')
     setEditingEventId('')
-  }, [commitMutation, draftAmount, draftNote, editingEvent])
+  }, [commitMutation, draftAmount, draftNote, editingEvent, supplementPreset])
 
   const undoLastAction = useCallback(() => {
     if (!undoAction) {

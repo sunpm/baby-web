@@ -58,10 +58,10 @@ export function StatusHeader({
 }: StatusHeaderProps) {
   const familyMessageClass =
     familyMessageTone === 'error'
-      ? 'border-red-500/35 bg-red-500/10 text-red-700 dark:text-red-100'
+      ? 'border-red-500/45 bg-red-500/14 text-red-800 ring-red-500/25 shadow-[0_8px_20px_-10px_rgba(239,68,68,0.4)] dark:text-red-100'
       : familyMessageTone === 'success'
-        ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-100'
-        : 'border-[var(--surface-border-strong)] bg-[var(--control-bg)] text-secondary'
+        ? 'border-emerald-500/45 bg-emerald-500/14 text-emerald-800 ring-emerald-500/25 shadow-[0_8px_20px_-10px_rgba(16,185,129,0.36)] dark:text-emerald-100'
+        : 'border-[var(--surface-border-strong)] bg-[var(--surface-bg)] text-primary ring-[var(--surface-border)] shadow-[0_8px_20px_-10px_rgba(15,23,42,0.18)]'
 
   const FamilyMessageIcon =
     familyMessageTone === 'error'
@@ -192,7 +192,7 @@ export function StatusHeader({
 
       {familyMessage && (
         <div
-          className={`mt-2.5 flex items-center gap-2.5 rounded-xl border px-3 py-2 text-[0.8rem] shadow-sm ${familyMessageClass}`}
+          className={`mt-2.5 flex items-center gap-2.5 rounded-xl border border-l-[3px] px-3 py-2 text-[0.8rem] font-medium ring-1 ${familyMessageClass}`}
         >
           <FamilyMessageIcon size={16} weight="fill" />
           {familyMessage}
@@ -200,21 +200,21 @@ export function StatusHeader({
       )}
 
       {syncMessage && (
-        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-red-500/35 bg-red-500/10 px-2.5 py-1.25 text-[0.76rem] text-red-700 dark:text-red-100">
-          <WarningCircle size={13} />
+        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-l-[3px] border-red-500/45 bg-red-500/14 px-2.5 py-1.5 text-[0.77rem] font-medium text-red-800 ring-1 ring-red-500/20 shadow-[0_8px_18px_-12px_rgba(239,68,68,0.38)] dark:text-red-100">
+          <WarningCircle size={14} weight="fill" />
           {syncMessage}
         </div>
       )}
 
       {offlineReady && (
-        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1.25 text-[0.76rem] text-emerald-700 dark:text-emerald-100">
-          <CheckCircle size={13} />
+        <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-l-[3px] border-emerald-500/45 bg-emerald-500/14 px-2.5 py-1.5 text-[0.77rem] font-medium text-emerald-800 ring-1 ring-emerald-500/20 shadow-[0_8px_18px_-12px_rgba(16,185,129,0.34)] dark:text-emerald-100">
+          <CheckCircle size={14} weight="fill" />
           已支持离线记录。
         </div>
       )}
 
       {needRefresh && (
-        <div className="mt-1.5 flex items-center justify-between gap-3 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.25 text-[0.76rem] text-cyan-700 dark:text-cyan-100">
+        <div className="mt-1.5 flex items-center justify-between gap-3 rounded-lg border border-l-[3px] border-cyan-500/45 bg-cyan-500/14 px-2.5 py-1.5 text-[0.77rem] font-medium text-cyan-800 ring-1 ring-cyan-500/20 shadow-[0_8px_18px_-12px_rgba(6,182,212,0.35)] dark:text-cyan-100">
           <span>有新版本可用。</span>
           <button
             type="button"
