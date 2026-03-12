@@ -11,7 +11,7 @@ export interface SummaryData {
   feedCount: number
   feedTotal: number
   poopCount: number
-  probioticCount: number
+  supplementCount: number
 }
 
 export interface TrendPoint {
@@ -91,7 +91,7 @@ export function buildSummary(events: BabyEvent[]): SummaryData {
   let feedCount = 0
   let feedTotal = 0
   let poopCount = 0
-  let probioticCount = 0
+  let supplementCount = 0
 
   for (const event of events) {
     if (dateGroupKey(event.eventAt) !== todayKey) {
@@ -109,14 +109,14 @@ export function buildSummary(events: BabyEvent[]): SummaryData {
       continue
     }
 
-    probioticCount += 1
+    supplementCount += 1
   }
 
   return {
     feedCount,
     feedTotal,
     poopCount,
-    probioticCount,
+    supplementCount,
   }
 }
 

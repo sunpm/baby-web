@@ -2,7 +2,7 @@ interface SummaryGridProps {
   feedCount: number
   feedTotal: number
   poopCount: number
-  probioticCount: number
+  supplementCount: number
   pendingCount: number
   syncEnabled: boolean
 }
@@ -11,14 +11,14 @@ export function SummaryGrid({
   feedCount,
   feedTotal,
   poopCount,
-  probioticCount,
+  supplementCount,
   pendingCount,
   syncEnabled,
 }: SummaryGridProps) {
   const items = [
     { title: '喂奶', value: feedCount, detail: `今天 ${feedTotal} ml` },
     { title: '拉粑粑', value: poopCount, detail: '今天' },
-    { title: '益生菌', value: probioticCount, detail: '今天' },
+    { title: '补充', value: supplementCount, detail: '今天' },
     { title: '待同步', value: pendingCount, detail: syncEnabled ? '待发送' : '本地' },
   ]
 

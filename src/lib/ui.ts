@@ -1,7 +1,8 @@
 import type { BabyEvent, EventKind, SyncPhase } from './types'
 
 export const MILK_PRESETS = [60, 90, 120] as const
-export const DOSE_PRESETS = [1, 2] as const
+export const SUPPLEMENT_PRESETS = ['益生菌', 'AD', 'D3', 'DHA'] as const
+export type SupplementPreset = (typeof SUPPLEMENT_PRESETS)[number]
 
 export function normalizeHouseholdName(value: string) {
   const safeValue = value.trim().replace(/\s+/g, ' ').slice(0, 48)
@@ -65,7 +66,7 @@ export function kindName(kind: EventKind) {
   if (kind === 'poop') {
     return '拉粑粑'
   }
-  return '益生菌'
+  return '补充'
 }
 
 export function kindClassName(kind: EventKind) {
@@ -79,6 +80,10 @@ export function kindClassName(kind: EventKind) {
 }
 
 export function formatEventAmount(event: BabyEvent) {
+  if (event.kind === 'probiotic') {
+    return '已记录'
+  }
+
   if (typeof event.amount !== 'number' || !event.unit) {
     return '已记录'
   }

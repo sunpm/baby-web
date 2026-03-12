@@ -6,7 +6,7 @@ import {
   createEvent,
   createUpsertMutation,
 } from '../lib/storage'
-import { kindName, parsePositiveInt } from '../lib/ui'
+import { kindName, parsePositiveInt, SUPPLEMENT_PRESETS, type SupplementPreset } from '../lib/ui'
 import type { AppStore, BabyEvent, EventKind, EventMutation } from '../lib/types'
 
 export type UndoAction =
@@ -21,7 +21,9 @@ interface UseEventComposerOptions {
 
 export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
   const [milkAmountInput, setMilkAmountInput] = useState('90')
-  const [doseAmount, setDoseAmount] = useState(1)
+  const [supplementPreset, setSupplementPreset] = useState<SupplementPreset>(
+    SUPPLEMENT_PRESETS[0],
+  )
   const [composerKind, setComposerKind] = useState<EventKind>('feeding')
   const [lastCreatedId, setLastCreatedId] = useState('')
   const [editingEventId, setEditingEventId] = useState('')
@@ -56,7 +58,7 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
       kind === 'feeding'
         ? { amount: parsePositiveInt(milkAmountInput, 90), unit: 'ml' as const }
         : kind === 'probiotic'
-          ? { amount: doseAmount, unit: 'dose' as const }
+          ? { note: supplementPreset }
           : {}
 
     const event = createEvent({
@@ -69,7 +71,7 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     commitMutation(createUpsertMutation(event))
     setLastCreatedId(event.id)
     setUndoAction({ label: `${kindName(kind)} 已添加`, type: 'create', event })
-  }, [commitMutation, doseAmount, milkAmountInput])
+  }, [commitMutation, milkAmountInput, supplementPreset])
 
   const openEventEditor = useCallback((eventId: string) => {
     const event = storeRef.current.events.find((current) => current.id === eventId)
@@ -77,7 +79,14 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
       return
     }
 
-    setDraftAmount(String(eventDefaultAmount(event)))
+    if (event.kind === 'probiotic') {
+      const matchedPreset = SUPPLEMENT_PRESETS.find((preset) => preset === event.note)
+      if (matchedPreset) {
+        setSupplementPreset(matchedPreset)
+      }
+    }
+
+    setDraftAmount(event.kind === 'feeding' ? String(eventDefaultAmount(event)) : '')
     setDraftNote(event.note ?? '')
     setEditingEventId(eventId)
   }, [])
@@ -125,15 +134,10 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     const updatedEvent: BabyEvent = {
       ...editingEvent,
       amount:
-        editingEvent.kind === 'poop'
-          ? undefined
-          : parsePositiveInt(draftAmount, eventDefaultAmount(editingEvent)),
-      unit:
         editingEvent.kind === 'feeding'
-          ? 'ml'
-          : editingEvent.kind === 'probiotic'
-            ? 'dose'
-            : undefined,
+          ? parsePositiveInt(draftAmount, eventDefaultAmount(editingEvent))
+          : undefined,
+      unit: editingEvent.kind === 'feeding' ? 'ml' : undefined,
       note: trimmedNote || undefined,
     }
 
@@ -210,7 +214,6 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     composerKind,
     deleteEvent,
     deleteEventById,
-    doseAmount,
     draftAmount,
     draftNote,
     editingEvent,
@@ -220,10 +223,11 @@ export function useEventComposer({ setStore, store }: UseEventComposerOptions) {
     resetTransientState,
     saveEditedEvent,
     setComposerKind,
-    setDoseAmount,
     setDraftAmount,
     setDraftNote,
     setMilkAmountInput,
+    setSupplementPreset,
+    supplementPreset,
     undoAction,
     undoLastAction,
   }

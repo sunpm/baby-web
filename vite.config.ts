@@ -23,9 +23,9 @@ export default defineConfig({
       manifest: {
         id: '/',
         lang: 'zh-CN',
-        name: '宝宝记录',
-        short_name: '宝宝记录',
-        description: '一键记录喂奶、拉粑粑、益生菌，支持离线和家人跨设备同步。',
+        name: '喂养日记',
+        short_name: '喂养日记',
+        description: '一键记录喂奶、拉粑粑、补充，支持离线和家人跨设备同步。',
         theme_color: '#0c111b',
         background_color: '#080b12',
         display: 'standalone',

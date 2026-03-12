@@ -164,8 +164,8 @@ export function useFamilySharing({
     }
 
     const inviteLink = buildInviteShareUrl(store.householdInviteCode)
-    const shareTitle = `${store.householdName} · 宝宝记录共享`
-    const shareText = `${store.householdName} 邀请你一起记录宝宝日常，打开链接后点加入即可。`
+    const shareTitle = `${store.householdName} · 喂养日记共享`
+    const shareText = `${store.householdName} 邀请你一起记录宝宝喂养，打开链接后点加入即可。`
 
     if (typeof navigator.share === 'function') {
       try {

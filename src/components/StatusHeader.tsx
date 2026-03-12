@@ -84,7 +84,7 @@ export function StatusHeader({
     <header className="surface overflow-hidden px-4 py-3.5 sm:px-5 sm:py-4">
       <div className="min-w-0">
         <h1 className="mt-1 text-[clamp(1.25rem,5vw,1.75rem)] font-bold tracking-tight text-primary">
-          宝宝日常记录
+          喂养日记
         </h1>
         <p className="mt-1 max-w-[24rem] text-[0.8rem] leading-relaxed text-secondary sm:text-[0.85rem]">
           单手点一下，自动同步给家人。

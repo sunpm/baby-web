@@ -26,9 +26,9 @@ export function EventEditorSheet({
     return null
   }
 
-  const showAmount = event.kind !== 'poop'
-  const unitLabel = event.kind === 'feeding' ? 'ml' : '剂'
-  const amountPlaceholder = String(event.amount ?? (event.kind === 'feeding' ? 90 : 1))
+  const showAmount = event.kind === 'feeding'
+  const unitLabel = 'ml'
+  const amountPlaceholder = String(event.amount ?? 90)
   const previewAmount = showAmount
     ? `${parsePositiveInt(draftAmount, Number(amountPlaceholder))} ${unitLabel}`
     : '已记录'

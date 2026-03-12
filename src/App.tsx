@@ -286,7 +286,7 @@ function App() {
             feedCount={summary.feedCount}
             feedTotal={summary.feedTotal}
             poopCount={summary.poopCount}
-            probioticCount={summary.probioticCount}
+            supplementCount={summary.supplementCount}
             pendingCount={pendingCount}
             syncEnabled={hasSupabaseConfig}
           />
@@ -380,12 +380,12 @@ function App() {
       <QuickActionBar
         ref={composerRef}
         activeKind={composer.composerKind}
-        doseAmount={composer.doseAmount}
         milkAmountInput={composer.milkAmountInput}
+        supplementPreset={composer.supplementPreset}
         onActiveKindChange={composer.setComposerKind}
         onAddEvent={composer.addEvent}
-        onDoseAmountChange={composer.setDoseAmount}
         onMilkAmountInputChange={composer.setMilkAmountInput}
+        onSupplementPresetChange={composer.setSupplementPreset}
       />
 
       {composer.editingEvent && (

@@ -1,16 +1,21 @@
 import { Baby, BeerBottle, FlowerLotus } from '@phosphor-icons/react'
 import { forwardRef } from 'react'
-import { DOSE_PRESETS, MILK_PRESETS, parsePositiveInt } from '../lib/ui'
+import {
+  MILK_PRESETS,
+  SUPPLEMENT_PRESETS,
+  parsePositiveInt,
+  type SupplementPreset,
+} from '../lib/ui'
 import type { EventKind } from '../lib/types'
 
 interface QuickActionBarProps {
   activeKind: EventKind
-  doseAmount: number
   milkAmountInput: string
+  supplementPreset: SupplementPreset
   onAddEvent: (kind: EventKind) => void
   onActiveKindChange: (kind: EventKind) => void
-  onDoseAmountChange: (value: number) => void
   onMilkAmountInputChange: (value: string) => void
+  onSupplementPresetChange: (value: SupplementPreset) => void
 }
 
 const tabToneClass: Record<EventKind, string> = {
@@ -49,12 +54,12 @@ const metaPillClass: Record<EventKind, string> = {
   probiotic: 'bg-cyan-500/12 text-slate-950/80',
 }
 
-const primaryMeta = (kind: EventKind, milkAmountInput: string, doseAmount: number) => {
+const primaryMeta = (kind: EventKind, milkAmountInput: string, supplementPreset: SupplementPreset) => {
   if (kind === 'feeding') {
     return `${parsePositiveInt(milkAmountInput, 90)} ml`
   }
   if (kind === 'probiotic') {
-    return `${doseAmount} 剂`
+    return supplementPreset
   }
   return '一次'
 }
@@ -64,7 +69,7 @@ const primaryLabel = (kind: EventKind) => {
     return '记录喂奶'
   }
   if (kind === 'probiotic') {
-    return '记录益生菌'
+    return '记录补充'
   }
   return '记录拉粑粑'
 }
@@ -73,12 +78,12 @@ export const QuickActionBar = forwardRef<HTMLElement, QuickActionBarProps>(
   function QuickActionBar(
     {
       activeKind,
-      doseAmount,
       milkAmountInput,
+      supplementPreset,
       onAddEvent,
       onActiveKindChange,
-      onDoseAmountChange,
       onMilkAmountInputChange,
+      onSupplementPresetChange,
     },
     ref,
   ) {
@@ -95,7 +100,7 @@ export const QuickActionBar = forwardRef<HTMLElement, QuickActionBarProps>(
             {[
               { kind: 'feeding' as const, label: '喂奶', Icon: BeerBottle },
               { kind: 'poop' as const, label: '拉粑粑', Icon: Baby },
-              { kind: 'probiotic' as const, label: '益生菌', Icon: FlowerLotus },
+              { kind: 'probiotic' as const, label: '补充', Icon: FlowerLotus },
             ].map(({ kind, label, Icon }) => {
               const isActive = activeKind === kind
 
@@ -162,21 +167,21 @@ export const QuickActionBar = forwardRef<HTMLElement, QuickActionBarProps>(
           )}
 
           {activeKind === 'probiotic' && (
-            <div className="grid grid-cols-2 gap-1.5">
-              {DOSE_PRESETS.map((value) => {
-                const isActive = doseAmount === value
+            <div className="grid grid-cols-4 gap-1.5">
+              {SUPPLEMENT_PRESETS.map((value) => {
+                const isActive = supplementPreset === value
 
                 return (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => onDoseAmountChange(value)}
-                    className={`action-tap h-11 rounded-xl border text-[0.85rem] font-medium ${isActive
+                    onClick={() => onSupplementPresetChange(value)}
+                    className={`action-tap h-11 rounded-xl border text-[0.82rem] font-medium ${isActive
                       ? 'border-cyan-400/45 bg-cyan-300/16 text-cyan-700 shadow-[0_3px_10px_rgba(14,165,233,0.1)] dark:text-cyan-200'
                       : 'border-[var(--surface-border)] bg-[var(--control-bg)] text-secondary shadow-[0_2px_8px_-2px_rgba(15,23,42,0.02)]'
                       }`}
                   >
-                    {value} 剂
+                    {value}
                   </button>
                 )
               })}
@@ -207,7 +212,7 @@ export const QuickActionBar = forwardRef<HTMLElement, QuickActionBarProps>(
                 <span
                   className={`relative flex min-w-[3rem] items-center justify-center rounded-xl px-3 py-1.5 text-[0.85rem] font-bold tabular-nums tracking-wide shadow-sm ring-1 ring-black/5 ${metaPillClass[activeKind]}`}
                 >
-                  {primaryMeta(activeKind, milkAmountInput, doseAmount)}
+                  {primaryMeta(activeKind, milkAmountInput, supplementPreset)}
                 </span>
               </div>
             </button>
